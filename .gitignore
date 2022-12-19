@@ -3,6 +3,7 @@
 *.img
 *.map
 *.ini
+*.vmdk
 
 bochs
 .vscode

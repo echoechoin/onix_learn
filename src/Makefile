@@ -58,7 +58,8 @@ $(BUILD)/system.map: $(BUILD)/kernel/kernel.bin
 	$(NM) $< | sort > $@
 
 $(BUILD)/kernel/kernel.bin: $(BUILD)/kernel/start.o \
-	$(BUILD)/kernel/main.o
+	$(BUILD)/kernel/main.o \
+	$(BUILD)/kernel/io.o
 
 	$(shell mkdir -p $(dir $@))
 	$(LD) -m elf_i386 -static -Ttext $(ENTRYPOINT) -o $@ $^
@@ -95,6 +96,16 @@ qemu-gdb: $(BUILD)/${DISK_IMG}
 
 	$(QEMU) -m 32M -boot c -hda $< -s -S
 
+
+$(BUILD)/master.vmdk: $(BUILD)/${DISK_IMG}
+	qemu-img convert -pO vmdk $< $@
+
+PHONY: vmdk
+vmdk: $(BUILD)/master.vmdk
+
+
 PHONY: clean
 clean:
 	rm -rf $(BUILD)
+
+

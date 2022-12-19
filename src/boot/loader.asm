@@ -113,76 +113,79 @@ protected_mode:
         ud2; 表示出错
 
 read_disk:
-    ; 读取硬盘
-    ; edi: 存储内存位置
-    ; ecx: 存储起始扇区位置
-    ; bl:  存储扇区数量
-    pushad ; 将ax cx dx bx sp bp si di寄存器的值压入栈中
-    ; pusha只会压入16位寄存器，而pushad会压入32位寄存器
-    ; 1. 设置扇区数量为1个
-    mov dx, 0x1f2
-    mov al, bl
-    out dx, al
-    ; 2. 设置从第ecx个扇区开始读
-    mov al, cl
-    mov dx, 0x1f3
-    out dx, al ; 起始扇区位置低八位
-
-    shr ecx, 8
-    mov dx, 0x1f4
-    mov al, cl
-    out dx, al ; 起始扇区位置中间八位
-
-    shr ecx, 8
-    mov dx, 0x1f5
-    mov al, cl
-    out dx, al ; 起始扇区位置高八位
-
-    shr ecx, 8
-    and cl, 0b00001111 
-
-    ; 3. 设置模式为LBA模式, 从ata0的主盘读
-    mov dx, 0x1f6
-    mov al, 0b1110_0000
-    or al, cl ; 起始扇区位置最后高四位
-    out dx, al
-
-    ; 4. 设置为读硬盘
-    mov dx, 0x1f7
-    mov al, 0x20
-    out dx, al
-
-    .check:
-        ; ata要求检查状态前需要一点点的延迟
-        nop
-        nop
-        nop
-        ; 5. 判断硬盘是否准备好
-        in al, dx
-        and al, 0b1000_1000 ; 第7位表示硬盘是否忙, 第3位表示硬盘是否准备好
-        cmp al, 0b0000_1000 ; 检查是否可读
-        jnz .check
-
-    ; 6. 读取数据
-    xor eax, eax
-    mov al, bl
-    mov dx, 256
-    mul dx ; ax = ax * dx = bl * 256
+        ; 读取硬盘
+        ; edi: 存储内存位置
+        ; ecx: 存储起始扇区位置
+        ; bl:  存储扇区数量
 
 
-    mov dx, 0x1f0
-    mov cx, ax ; 循环次数
+        ; 设置读写扇区的数量
+        mov dx, 0x1f2
+        mov al, bl
+        out dx, al
 
-    .readw:
-        in ax, dx ; 读取一个word
-        nop
-        nop
-        nop
-        mov [edi], ax ; 将读取的数据写入内存
-        add edi, 2    ; 下一个字的地址
-        loop .readw   ; 循环读取， 直到cx为0
-    popad
-    ret
+        inc dx; 0x1f3
+        mov al, cl; 起始扇区的前八位
+        out dx, al
+
+        inc dx; 0x1f4
+        shr ecx, 8
+        mov al, cl; 起始扇区的中八位
+        out dx, al
+
+        inc dx; 0x1f5
+        shr ecx, 8
+        mov al, cl; 起始扇区的高八位
+        out dx, al
+
+        inc dx; 0x1f6
+        shr ecx, 8
+        and cl, 0b1111; 将高四位置为 0
+
+        mov al, 0b1110_0000;
+        or al, cl
+        out dx, al; 主盘 - LBA 模式
+
+        inc dx; 0x1f7
+        mov al, 0x20; 读硬盘
+        out dx, al
+
+        xor ecx, ecx; 将 ecx 清空
+        mov cl, bl; 得到读写扇区的数量
+
+        .read:
+                push cx; 保存 cx
+                call .waits; 等待数据准备完毕
+                call .reads; 读取一个扇区
+                pop cx; 恢复 cx
+                loop .read
+
+        ret
+
+        .waits:
+                mov dx, 0x1f7
+                .check:
+                        in al, dx
+                        jmp $+2; nop 直接跳转到下一行
+                        jmp $+2; 一点点延迟
+                        jmp $+2
+                        and al, 0b1000_1000
+                        cmp al, 0b0000_1000
+                        jnz .check
+                ret
+
+        .reads:
+                mov dx, 0x1f0
+                mov cx, 256; 一个扇区 256 字
+                .readw:
+                        in ax, dx
+                        jmp $+2; 一点点延迟
+                        jmp $+2
+                        jmp $+2
+                        mov [edi], ax
+                        add edi, 2
+                        loop .readw
+                ret
 
 code_selector equ (1 << 3)
 data_selector equ (2 << 3)
