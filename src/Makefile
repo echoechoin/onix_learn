@@ -15,13 +15,13 @@ BOCHSRC = bochsrc
 BOCHSRC_GDB = bochsrc.gdb
 DISK_IMG = master.img
 
-DEBUG := -g
-CFLAGS := -m32
-CFLAGS += -fno-builtin # 不需要gcc内置函数
-CFLAGS += -nostdinc    # 不需要标准头文件
-CFLAGS += -fno-pic     # 不需要位置无关的代码
-CFLAGS += -fno-pie     # 不需要位置无关的可执行程序
-CFLAGS += -nostdlib    # 不需要标准库
+DEBUG := -g                    # 指定调试模式
+CFLAGS := -m32                 # 指定编译器生成32位代码
+CFLAGS += -fno-builtin         # 不需要gcc内置函数
+CFLAGS += -nostdinc            # 不需要标准头文件
+CFLAGS += -fno-pic             # 不需要位置无关的代码
+CFLAGS += -fno-pie             # 不需要位置无关的可执行程序
+CFLAGS += -nostdlib            # 不需要标准库
 CFLAGS += -fno-stack-protector # 不需要栈保护
 CFLAGS := $(strip ${CFLAGS})
 
@@ -52,14 +52,24 @@ $(BUILD)/boot/%.bin: $(SRC)/boot/%.asm
 $(BUILD)/system.bin: $(BUILD)/kernel/kernel.bin
 	$(OBJCOPY) -O binary $< $@
 	@# 将elf格式的文件转换为二进制文件
-	@# 主要是为了将bss段的数据直接写入到文件中，而不是表留一个标志，因为在这里我们的内核还没有实现执行elf文件的功能
+	@# 主要是为了将bss段的数据直接写入到文件中，而不是表示留一个标志，因为在这里我们的内核还没有实现执行elf文件的功能
 
 $(BUILD)/system.map: $(BUILD)/kernel/kernel.bin
 	$(NM) $< | sort > $@
 
 $(BUILD)/kernel/kernel.bin: $(BUILD)/kernel/start.o \
 	$(BUILD)/kernel/main.o \
-	$(BUILD)/kernel/io.o
+	$(BUILD)/kernel/io.o \
+	$(BUILD)/kernel/console.o \
+	$(BUILD)/kernel/printk.o \
+	$(BUILD)/kernel/assert.o \
+	$(BUILD)/kernel/debug.o \
+	$(BUILD)/kernel/global.o \
+	$(BUILD)/kernel/task.o \
+	$(BUILD)/kernel/schedule.o \
+	$(BUILD)/lib/string.o \
+	$(BUILD)/lib/vsprintf.o \
+
 
 	$(shell mkdir -p $(dir $@))
 	$(LD) -m elf_i386 -static -Ttext $(ENTRYPOINT) -o $@ $^
@@ -72,6 +82,9 @@ $(BUILD)/kernel/%.o: $(SRC)/kernel/%.c
 	$(shell mkdir -p $(dir $@))
 	$(GCC) $(CFLAGS) $(DEBUG) $(INCLUDE) -c -o $@ $<
 
+$(BUILD)/lib/%.o: $(SRC)/lib/%.c
+	$(shell mkdir -p $(dir $@))
+	$(GCC) $(CFLAGS) $(DEBUG) $(INCLUDE) -c -o $@ $<
 
 PHONY: bochs
 bochs: $(BUILD)/${DISK_IMG}

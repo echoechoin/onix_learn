@@ -75,7 +75,7 @@ prepare_protected_mode:
         ; 关闭中断
         cli
 
-        ; 打开A20地址线
+        ; 打开A20地址线，否者无法访问1M以上的内存
         in al, 0x92
         or al, 0b0000_0010
         out 0x92, al
@@ -83,7 +83,8 @@ prepare_protected_mode:
         ; 加载GDT
         lgdt [gdt_ptr]
 
-        ; 启动保护模式
+        ; 启动保护模式： 
+        ; cr0寄存器的第0位是PE位，用来控制CPU的工作模式。置为1表示进入保护模式。
         mov eax, cr0
         or eax, 0x1
         mov cr0, eax
@@ -197,7 +198,7 @@ memory_limit equ (1024 * 1024 * 1024 * 4) / (4 * 1024) - 1
 
 gdt_ptr:
         dw gdt_end - gdt_base - 1
-        dd gdt_base
+        dd gdt_base; GDT基地址
 gdt_base:
         dd 0, 0      ; GDT NULL 描述符
 gdt_code:

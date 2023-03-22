@@ -2,7 +2,8 @@
 #define ONIX_TYPES_H
 
 #define EOF -1 // END OF FILE
-#define NULL 0 // 空指针
+#define EOS '\0' // END OF STRING
+#define NULL ((void*)0) // 空指针
 
 #define bool _Bool
 #define true 1
