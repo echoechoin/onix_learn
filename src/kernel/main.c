@@ -8,6 +8,7 @@
 #include "onix/debug.h"
 #include "onix/global.h"
 #include "onix/task.h"
+#include "onix/interrupt.h"
 
 // 栈内存对齐测试
 void stack_align(char arg1, int arg2, char arg3, int arg4)
@@ -26,7 +27,9 @@ void kernel_init()
 {
     console_init();
     gdt_init();
+    interrupt_init();
     unsigned int i = 1;
     DEBUGK("Hello, world! %#010x\n", i);
-    task_init();
+    asm volatile("int $0x80");
+    // task_init();
 }

@@ -1,7 +1,7 @@
 #ifndef ONIX_GLOBAL_H
 #define ONIX_GLOBAL_H
 
-#include <onix/types.h>
+#include "onix/types.h"
 
 #define GDT_SIZE 128
 

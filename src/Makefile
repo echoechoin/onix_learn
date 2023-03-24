@@ -69,6 +69,8 @@ $(BUILD)/kernel/kernel.bin: $(BUILD)/kernel/start.o \
 	$(BUILD)/kernel/schedule.o \
 	$(BUILD)/lib/string.o \
 	$(BUILD)/lib/vsprintf.o \
+	$(BUILD)/kernel/interrupt.o \
+	$(BUILD)/kernel/handler.o \
 
 
 	$(shell mkdir -p $(dir $@))

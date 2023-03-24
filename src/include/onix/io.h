@@ -1,7 +1,7 @@
 #ifndef ONIX_IO_H
 #define ONIX_IO_H
 
-#include <onix/types.h>
+#include "onix/types.h"
 
 // 输入一个字节
 extern uint8 inb(uint16 port);

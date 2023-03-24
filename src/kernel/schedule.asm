@@ -31,5 +31,5 @@ task_switch:
     pop ebp
 
     ; 从task_switch返回, 因为栈中还有eip的值；
-    ; 所以这里会直接跳转到新任务的eip处。
+    ; 所以这里的ret指令会直接跳转到新任务的eip处。
     ret

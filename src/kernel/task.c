@@ -1,6 +1,6 @@
-#include <onix/task.h>
-#include <onix/printk.h>
-#include <onix/debug.h>
+#include "onix/task.h"
+#include "onix/printk.h"
+#include "onix/debug.h"
 
 #define PAGE_SIZE 0x1000 // 4096
 

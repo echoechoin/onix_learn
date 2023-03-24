@@ -1,7 +1,7 @@
 #ifndef ONIX_TASK_H
 #define ONIX_TASK_H
 
-#include <onix/types.h>
+#include "onix/types.h"
 
 // 进程主函数
 typedef uint32 target_t();
