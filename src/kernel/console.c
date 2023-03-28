@@ -1,5 +1,6 @@
 #include "onix/console.h"
 #include "onix/types.h"
+#include "onix/debug.h"
 
 #define CRT_ADDR_REG 0x3D4              // CRT 索引寄存器
 #define CRT_DATA_REG 0x3D5              // CRT 数据寄存器
@@ -134,19 +135,20 @@ static void command_cr()
 
 static void scroll_up()
 {
-    if (screen + SCREEN_SIZE + ROW_SIZE < MEM_END){
-        uint32 *ptr = (uint32 *)(screen + SCREEN_SIZE);
-        for (int i = 0; i < WIDTH; i++)
-        {
-            *ptr++ = erase;
-        }
-        screen += ROW_SIZE;
-        pos += ROW_SIZE;
-    } else {
+    if (screen + SCREEN_SIZE + ROW_SIZE >= MEM_END){
         memcpy((void *)MEM_BASE, (void *)screen, SCREEN_SIZE);
         pos -= (screen - MEM_BASE);
         screen = MEM_BASE;
+        BMB;
     }
+
+    uint32 *ptr = (uint32 *)(screen + SCREEN_SIZE);
+    for (int i = 0; i < WIDTH; i++)
+    {
+        *ptr++ = erase;
+    }
+    screen += ROW_SIZE;
+    pos += ROW_SIZE;
     set_screen();
 }
 

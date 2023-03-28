@@ -7,4 +7,5 @@ _start:
         mov byte [0xb8000], 'K'
         xchg bx, bx
         call kernel_init
+        int 0x80 ; 触发异常
         jmp $

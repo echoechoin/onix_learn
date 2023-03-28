@@ -5,7 +5,7 @@ task_switch:
     push ebp 
     mov ebp, esp
 
-    ; 保存当前任务的寄存器
+    ; 保存当前任务的寄存器 这里会将当前任务的寄存器保存到task_frame_t结构体中
     push ebx
     push esi
     push edi
