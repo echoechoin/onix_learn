@@ -4,6 +4,7 @@
 #include "onix/clock.h"
 #include "onix/task.h"
 #include "onix/printk.h"
+#include "onix/time.h"
 
 void kernel_init()
 {
@@ -11,7 +12,7 @@ void kernel_init()
     gdt_init();
     interrupt_init();
     clock_init();
-    printk("\a\n");
+    time_init();
     task_init();
     return;
 }

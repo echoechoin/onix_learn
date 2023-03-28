@@ -45,7 +45,7 @@ static void clock_handler(int vector)
     }
     schedule();  // 进程调度
     jiffies++;   // 产生中断的次数++
-    DEBUGK("clock jiffies %d ...\n", jiffies);
+    // DEBUGK("clock jiffies %d ...\n", jiffies);
     stop_beep(); // 每次中断都判断一下是否需要关闭蜂鸣器。
 }
 

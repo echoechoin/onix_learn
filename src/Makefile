@@ -67,12 +67,13 @@ $(BUILD)/kernel/kernel.bin: $(BUILD)/kernel/start.o \
 	$(BUILD)/kernel/global.o \
 	$(BUILD)/kernel/task.o \
 	$(BUILD)/kernel/schedule.o \
-	$(BUILD)/lib/string.o \
-	$(BUILD)/lib/vsprintf.o \
 	$(BUILD)/kernel/interrupt.o \
 	$(BUILD)/kernel/clock.o \
 	$(BUILD)/kernel/handler.o \
-
+	$(BUILD)/kernel/time.o \
+	$(BUILD)/lib/string.o \
+	$(BUILD)/lib/vsprintf.o \
+	$(BUILD)/lib/stdlib.o \
 
 	$(shell mkdir -p $(dir $@))
 	$(LD) -m elf_i386 -static -Ttext $(ENTRYPOINT) -o $@ $^
@@ -97,32 +98,28 @@ PHONY: bochs-gdb
 bochs-gdb: $(BUILD)/${DISK_IMG}
 	$(BOCHS_GDB) -q -f $(BOCHSRC_GDB)
 
-PHONY: qemu
-qemu: $(BUILD)/${DISK_IMG}
-	@# -m 32M: 内存大小为32M
-	@# -boot c: 从第一个硬盘启动
-	@# -hda $<: 指定硬盘镜像文件
-
-	$(QEMU) \
+# -m 32M: 内存大小为32M
+# -boot c: 从第一个硬盘启动
+# -hda $<: 指定硬盘镜像文件
+# -rtc base=localtime 设置时间为本地时间（UTC+8）
+QEMU := $(QEMU) \
 	-m 32M \
 	-boot c \
-	-drive file=$<,if=ide,index=0,media=disk,format=raw \
+	-drive file=$(BUILD)/master.img,if=ide,index=0,media=disk,format=raw \
 	-audiodev pa,id=hda \
 	-machine pcspk-audiodev=hda \
+	-rtc base=localtime \
+
+PHONY: qemu
+qemu: $(BUILD)/${DISK_IMG}
+	$(QEMU)
+	
 
 PHONY: qemu-gdb
 qemu-gdb: $(BUILD)/${DISK_IMG}
 	@# -s: 开启gdb调试。监听1234端口
 	@# -S: 暂停虚拟机，等待gdb连接
-
-	$(QEMU) \
-	-m 32M \
-	-boot c \
-	-drive file=$<,if=ide,index=0,media=disk,format=raw \
-	-audiodev pa,id=hda \
-	-machine pcspk-audiodev=hda \
-	-s \
-	-S \
+	$(QEMU) -s -S
 
 
 $(BUILD)/master.vmdk: $(BUILD)/${DISK_IMG}
