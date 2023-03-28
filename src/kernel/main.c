@@ -5,6 +5,7 @@
 #include "onix/task.h"
 #include "onix/printk.h"
 #include "onix/time.h"
+#include "onix/rtc.h"
 
 void kernel_init()
 {
@@ -13,6 +14,7 @@ void kernel_init()
     interrupt_init();
     clock_init();
     time_init();
+    rtc_init();
     task_init();
     return;
 }

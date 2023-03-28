@@ -68,9 +68,10 @@ $(BUILD)/kernel/kernel.bin: $(BUILD)/kernel/start.o \
 	$(BUILD)/kernel/task.o \
 	$(BUILD)/kernel/schedule.o \
 	$(BUILD)/kernel/interrupt.o \
-	$(BUILD)/kernel/clock.o \
 	$(BUILD)/kernel/handler.o \
+	$(BUILD)/kernel/clock.o \
 	$(BUILD)/kernel/time.o \
+	$(BUILD)/kernel/rtc.o \
 	$(BUILD)/lib/string.o \
 	$(BUILD)/lib/vsprintf.o \
 	$(BUILD)/lib/stdlib.o \

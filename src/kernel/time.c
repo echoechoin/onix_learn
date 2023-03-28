@@ -4,11 +4,7 @@
 #include "onix/assert.h"
 #include "onix/io.h"
 #include "onix/stdlib.h"
-
-#define LOGK(fmt, args...) DEBUGK(fmt, ##args)
-
-#define CMOS_ADDR 0x70 // CMOS 地址寄存器
-#define CMOS_DATA 0x71 // CMOS 数据寄存器
+#include "onix/rtc.h"
 
 // 下面是 CMOS 信息的寄存器索引
 #define CMOS_SECOND  0x00  // (0 ~ 59)
@@ -19,7 +15,6 @@
 #define CMOS_MONTH   0x08  // (1 ~ 12)
 #define CMOS_YEAR    0x09  // (0 ~ 99)
 #define CMOS_CENTURY 0x32  // 可能不存在
-#define CMOS_NMI     0x80
 
 #define MINUTE 60          // 每分钟的秒数
 #define HOUR (60 * MINUTE) // 每小时的秒数
@@ -48,6 +43,7 @@ int century;
 // 判断是否为闰年
 static int is_leap_year(int year)
 {
+    // 闰年是指能被 4 整除，但不能被 100 整除的年份，但是能被 400 整除的年份也是闰年
     return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
 }
 
@@ -110,12 +106,6 @@ static int get_yday(tm *time)
     return res;
 }
 
-static uint8 cmos_read(uint8 addr)
-{
-    outb(CMOS_ADDR, CMOS_NMI | addr);
-    return inb(CMOS_DATA);
-};
-
 static void time_read_bcd(tm *time)
 {
     // CMOS 的访问速度很慢。为了减小时间误差，在读取了下面循环中所有数值后，
@@ -152,6 +142,7 @@ void time_read(tm *time)
 
 void time_init()
 {
+    // 并不需要初始化time，直接从cmos读取时间即可
     tm time;
     time_read(&time);
     startup_time = mktime(&time);
