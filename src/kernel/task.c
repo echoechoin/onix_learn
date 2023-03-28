@@ -2,6 +2,7 @@
 #include "onix/printk.h"
 #include "onix/debug.h"
 #include "onix/types.h"
+#include "onix/task.h"
 
 #define PAGE_SIZE 0x1000 // 4096
 
@@ -32,13 +33,13 @@ uint32 _ofp thread_a()
     asm volatile("sti\n");
     while (true)
     {
-        // for (int i = 0; i < 100; i++)
-        // {
-        //     asm volatile("nop");
-        // }
-        // asm volatile("cli");
-        // printk("A"); // 因为printk暂时还不是线程安全的，所以这里会出现问题，需要暂时禁用中断，保证原子性
-        // asm volatile("sti\n");
+    //     for (int i = 0; i < 100000; i++)
+    //     {
+    //         asm volatile("nop");
+    //     }
+    //     asm volatile("cli");
+    //     printk("A"); // 因为printk暂时还不是线程安全的，所以这里会出现问题，需要暂时禁用中断，保证原子性
+    //     asm volatile("sti\n");
     }
 }
 
@@ -47,7 +48,7 @@ uint32 _ofp thread_b()
     asm volatile("sti\n");
     while (true)
     {
-        // for (int i = 0; i < 100; i++)
+        // for (int i = 0; i < 100000; i++)
         // {
         //     asm volatile("nop");
         // }

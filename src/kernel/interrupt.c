@@ -4,6 +4,8 @@
 #include "onix/printk.h"
 #include "onix/io.h"
 #include "onix/types.h"
+#include "onix/assert.h"
+#include "onix/task.h"
 
 #define LOGK(fmt, args...) DEBUGK(fmt, ##args)
 // #define LOGK(fmt, args...)
@@ -15,9 +17,9 @@
 #define ENTRY_SIZE 0x30
 
 uint32 counter = 0;
-gate_t idt[IDT_SIZE] = {0}; // 内核中断描述符表
-pointer_t idt_ptr;
-handler_t handler_table[IDT_SIZE] = {0}; // 中断处理函数表
+gate_t idt[IDT_SIZE] = {0};                       // 内核中断描述符表
+pointer_t idt_ptr;                                // 内核中断描述符表指针
+handler_t handler_table[IDT_SIZE] = {0};          // 中断处理函数表
 extern handler_t handler_entry_table[ENTRY_SIZE]; // 在handler.asm中定义且初始化好的中断处理函数入口表
 
 static char *messages[] = {
@@ -45,7 +47,7 @@ static char *messages[] = {
     "#CP Control Protection Exception\0",
 };
 
-void exception_handler(
+static void exception_handler(
     int vector,
     uint32 edi, uint32 esi, uint32 ebp, uint32 esp,
     uint32 ebx, uint32 edx, uint32 ecx, uint32 eax,
@@ -91,9 +93,40 @@ void send_eoi(int vector)
     }
 }
 
-extern void schedule();
+void set_interrupt_handler(uint32 irq, handler_t handler)
+{
+    assert(irq >= 0 && irq < 16);
+    handler_table[IRQ_MASTER_NR + irq] = handler;
+}
 
-void default_handler(
+void set_interrupt_mask(uint32 irq, bool enable)
+{
+    assert(irq >= 0 && irq < 16);
+    uint16 port;
+    // 表示该中断是主片的中断
+    if (irq < 8)
+    {
+        port = PIC_M_DATA;
+    }
+    // 表示该中断是从片的中断
+    else
+    {
+        port = PIC_S_DATA;
+        irq -= 8;
+    }
+    if (enable)
+    {
+        // 使能中断
+        outb(port, inb(port) & ~(1 << irq));
+    }
+    else
+    {
+        // 禁止中断
+        outb(port, inb(port) | (1 << irq));
+    }
+}
+
+static void default_handler(
     int vector,
     uint32 edi, uint32 esi, uint32 ebp, uint32 esp,
     uint32 ebx, uint32 edx, uint32 ecx, uint32 eax,
@@ -101,10 +134,10 @@ void default_handler(
     uint32 vector0, uint32 error, uint32 eip, uint32 cs, uint32 eflags)
 {
     send_eoi(vector);
-    schedule();
+    DEBUGK("[%x] default interrupt called %d...\n", vector, counter);
 }
 
-void pic_init()
+static void pic_init()
 {
     // ICW需要按照顺序写入，否者中断控制器不知道如何处理
     outb(PIC_M_CTRL, 0b00010001); // ICW1: 边沿触发, 级联 8259, 需要ICW4.
@@ -117,11 +150,11 @@ void pic_init()
     outb(PIC_S_DATA, 2);          // ICW3: 设置从片连接到主片的 IR2 引脚
     outb(PIC_S_DATA, 0b00000001); // ICW4: 8086模式, 正常EOI
 
-    outb(PIC_M_DATA, 0b11111110); // 关闭所有中断，除了时钟中断
-    outb(PIC_S_DATA, 0b11111111); // 关闭所有中断
+    outb(PIC_M_DATA, 0b11111111); // 关闭主片所有中断
+    outb(PIC_S_DATA, 0b11111111); // 关闭从片所有中断
 }
 
-void idt_init()
+static void idt_init()
 {
     for (size_t i = 0; i < ENTRY_SIZE; i++)
     {
@@ -138,13 +171,13 @@ void idt_init()
         gate->present = 1;        // 有效
     }
 
-    // 初始化异常处理函数
+    // 初始化异常处理默认函数
     for (size_t i = 0; i < 0x20; i++)
     {
         handler_table[i] = exception_handler;
     }
 
-    // 初始化外部中断处理函数
+    // 初始化外部中断处理默认函数
     for (size_t i = 0x20; i < ENTRY_SIZE; i++)
     {
         handler_table[i] = default_handler;

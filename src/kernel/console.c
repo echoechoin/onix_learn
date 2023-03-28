@@ -1,6 +1,7 @@
 #include "onix/console.h"
 #include "onix/types.h"
 #include "onix/debug.h"
+#include "onix/clock.h"
 
 #define CRT_ADDR_REG 0x3D4              // CRT 索引寄存器
 #define CRT_DATA_REG 0x3D5              // CRT 数据寄存器
@@ -176,7 +177,7 @@ void console_write(char *buf, uint32 count)
         case ASCII_ENQ:
             break;
         case ASCII_BEL:
-            // TODO \a
+            start_beep();
             break;
         case ASCII_BS:
             command_bs();

@@ -70,6 +70,7 @@ $(BUILD)/kernel/kernel.bin: $(BUILD)/kernel/start.o \
 	$(BUILD)/lib/string.o \
 	$(BUILD)/lib/vsprintf.o \
 	$(BUILD)/kernel/interrupt.o \
+	$(BUILD)/kernel/clock.o \
 	$(BUILD)/kernel/handler.o \
 
 
@@ -102,14 +103,26 @@ qemu: $(BUILD)/${DISK_IMG}
 	@# -boot c: 从第一个硬盘启动
 	@# -hda $<: 指定硬盘镜像文件
 
-	$(QEMU) -m 32M -boot c -hda $<
+	$(QEMU) \
+	-m 32M \
+	-boot c \
+	-drive file=$<,if=ide,index=0,media=disk,format=raw \
+	-audiodev pa,id=hda \
+	-machine pcspk-audiodev=hda \
 
 PHONY: qemu-gdb
 qemu-gdb: $(BUILD)/${DISK_IMG}
 	@# -s: 开启gdb调试。监听1234端口
 	@# -S: 暂停虚拟机，等待gdb连接
 
-	$(QEMU) -m 32M -boot c -hda $< -s -S
+	$(QEMU) \
+	-m 32M \
+	-boot c \
+	-drive file=$<,if=ide,index=0,media=disk,format=raw \
+	-audiodev pa,id=hda \
+	-machine pcspk-audiodev=hda \
+	-s \
+	-S \
 
 
 $(BUILD)/master.vmdk: $(BUILD)/${DISK_IMG}
