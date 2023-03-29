@@ -6,9 +6,12 @@
 #include "onix/printk.h"
 #include "onix/time.h"
 #include "onix/rtc.h"
+#include "onix/memory.h"
 
 void kernel_init()
 {
+    memory_map_init();
+    memory_test();
     gdt_init();
     interrupt_init();
     clock_init();

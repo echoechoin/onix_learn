@@ -5,10 +5,14 @@
 #include "onix/debug.h"
 #include "onix/types.h"
 #include "onix/assert.h"
+#include "onix/stdlib.h"
+#include "onix/string.h"
 
 #define PAGE_SIZE 0x1000     // 一页的大小 4K
 #define MEMORY_BASE 0x100000 // 1M，可用内存开始的位置
 
 void memory_init(uint32 magic, uint32 addr);
+void memory_map_init();
+void memory_test();
 
 #endif
