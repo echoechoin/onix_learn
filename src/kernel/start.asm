@@ -1,11 +1,15 @@
 [bits 32]
 
+extern console_init
 extern kernel_init
+extern memory_init
 
 global _start
 _start:
-        mov byte [0xb8000], 'K'
-        xchg bx, bx
+        push ebx ; ards_count 的内存位置
+        push eax ; 内核魔数
+        call console_init
+        call memory_init
         call kernel_init
         int 0x80 ; 触发异常
         jmp $

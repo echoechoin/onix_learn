@@ -13,5 +13,5 @@ void debugk(char *file, int line, char *fmt, ...)
     vsprintf(buf, fmt, args);
     va_end(args);
 
-    printk("debug: %s:%d %s\n", file, line, buf);
+    printk("debug: %s:%d %s", file, line, buf);
 }

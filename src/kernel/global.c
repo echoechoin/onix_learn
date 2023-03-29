@@ -9,8 +9,6 @@ pointer_t gdt_ptr;          // 内核全局描述符表指针
 // 主要是将汇编代码中的全局描述符复制到内核的gdt中
 void gdt_init()
 {
-    DEBUGK("init gdt!!!\n");
-
     // 保存当前的gdt到gdt_ptr
     asm volatile("sgdt gdt_ptr");
 

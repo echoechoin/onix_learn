@@ -42,7 +42,7 @@ detect_memory:
         jc .error             ; CF=1表示出错
 
         add di, cx            ; 下一个存储内存信息的位置 di = di + 20。每个ARDS结构占20字节
-        inc word [ards_count] ; ards_count++
+        inc dword [ards_count] ; ards_count++
 
         cmp ebx, 0            ; 等于零，说明内存检测结束
         jnz .next             ; 不等于零，说明还有内存信息，继续检测
@@ -109,6 +109,14 @@ protected_mode:
         mov ecx, 10      ; 起始扇区
         mov bl, 200      ; 读取扇区数
         call read_disk
+
+        ; 添加一个魔数
+        mov eax, 0x12345678
+
+        ; 保存 ards_count 的地址到ebx中
+        mov ebx, ards_count
+
+        ; 跳转到kernel中
         jmp dword code_selector:0x10000
 
         ud2; 表示出错
@@ -233,7 +241,7 @@ gdt_end:
 
 ; 地址范围描述符结构体大小
 ards_count:
-        dw 0
+        dd 0
 
 ; 地址范围描述符结构体数组， 需要留出足够的空间！
 ards_buffer:
