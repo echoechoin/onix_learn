@@ -8,7 +8,7 @@
 #include "onix/stdlib.h"
 #include "onix/string.h"
 
-#define PAGE_SIZE 0x1000     // 一页的大小 4K
+#define PAGE_SIZE 0x1000     // 一页的大小 4K(1024)
 #define MEMORY_BASE 0x100000 // 1M，可用内存开始的位置
 
 typedef struct page_entry_t
@@ -30,6 +30,9 @@ typedef struct page_entry_t
     uint8 ignored : 3;  // 该安排的都安排了，送给操作系统吧
     uint32 index : 20;  // 页索引
 } _packed page_entry_t;
+
+void set_cr3(uint32 pde);
+uint32 get_cr3();
 
 void memory_init(uint32 magic, uint32 addr);
 void memory_map_init();

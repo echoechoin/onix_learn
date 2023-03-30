@@ -191,4 +191,5 @@ void interrupt_init()
 {
     pic_init();
     idt_init();
+    BMB;
 }

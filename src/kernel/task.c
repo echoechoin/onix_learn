@@ -6,8 +6,8 @@
 
 #define PAGE_SIZE 0x1000 // 4096
 
-task_t *a = (task_t *)0x1000; // 表示第一个PCB所在的页地址为0x1000
-task_t *b = (task_t *)0x2000; // 表示第二个PCB所在的页地址为0x2000
+task_t *a = (task_t *)0x3000; // 表示第一个PCB所在的页地址为0x1000
+task_t *b = (task_t *)0x4000; // 表示第二个PCB所在的页地址为0x2000
 
 extern void task_switch(task_t *next);
 

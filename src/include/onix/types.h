@@ -26,4 +26,6 @@ typedef unsigned long long uint64;
 // 时间戳
 typedef uint32 time_t;
 
+// index
+typedef uint32 idx_t;
 #endif
