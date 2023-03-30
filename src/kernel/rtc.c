@@ -85,7 +85,9 @@ static void rtc_handler(int vector)
     // 读 CMOS 寄存器 C，允许 CMOS 继续产生中断
     cmos_read(CMOS_C);
 
-    set_alarm(1);
+    set_alarm(2);
+
+    time_init();
 }
 
 void rtc_init()

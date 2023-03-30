@@ -20,6 +20,7 @@ static uint32 memory_size = 0; // 可用内存大小
 static uint32 total_pages = 0; // 所有内存页数
 static uint32 free_pages = 0;  // 空闲内存页数
 
+// 从ards结构体中获取可用内存信息，将最大的一块可用内存信息保存到memory_base和memory_size中
 void memory_init(uint32 magic, uint32 addr)
 {
     uint32 count = *((uint32*)(addr)); // ards 数量
@@ -61,6 +62,22 @@ static uint32 start_page = 0;   // 可分配物理内存起始位置
 static uint8 *memory_map;       // 物理内存数组
 static uint32 memory_map_pages; // 物理内存数组占用的页数
 
+// 设置 cr3 寄存器，参数是页目录的地址
+static void inline set_cr3(uint32 pde)
+{
+    ASSERT_PAGE(pde);
+    asm volatile("movl %%eax, %%cr3\n" ::"a"(pde));
+}
+
+// 得到 cr3 寄存器
+static uint32 inline get_cr3()
+{
+    // 直接将 mov eax, cr3，返回值在 eax 中
+    asm volatile("movl %cr3, %eax\n");
+}
+
+// 把前1M和1M以后的一块物理内存按照页的方式管理
+// 使用一个memory_map数组表示哪些页被使用，哪些页空闲
 void memory_map_init()
 {
     // 初始化物理内存数组
@@ -132,16 +149,63 @@ static void put_page(uint32 addr)
     LOGK("PUT page 0x%p\n", addr);
 }
 
-void memory_test()
+// 我们暂时将页目录存放在0x200000处，将第一个我们需要用到的页表存放在0x210000处
+#define KERNEL_PAGE_DIR 0x200000
+#define KERNEL_PAGE_ENTRY 0x201000
+
+// 将 cr0 寄存器最高位 PE 置为 1，启用分页
+static inline void enable_page()
 {
-    uint32 pages[10];
-    for (size_t i = 0; i < 10; i++)
+    // 0b1000_0000_0000_0000_0000_0000_0000_0000
+    // 0x80000000
+    asm volatile(
+        "movl %cr0, %eax\n"
+        "orl $0x80000000, %eax\n"
+        "movl %eax, %cr0\n");
+}
+
+// 初始化页表项
+static void entry_init(page_entry_t *entry, uint32 index)
+{
+    *(uint32 *)entry = 0;
+    entry->present = 1; // 在内存中
+    entry->write = 1; // 可读可写
+    entry->user = 1; // 所有用户都可以访问
+    entry->index = index;
+}
+
+// 初始化内存映射，前4M的内存映射后虚拟地址和物理地址相同，保证内核可以访问到之前初始化好的内存
+void mapping_init()
+{
+    // 页目录存放地址
+    page_entry_t *pde = (page_entry_t *)KERNEL_PAGE_DIR;
+    memset(pde, 0, PAGE_SIZE);
+
+    // 初始化第一个页目录项，指向第一个页表
+    entry_init(&pde[0], IDX(KERNEL_PAGE_ENTRY));
+
+    // 第一个页表存放地址
+    page_entry_t *pte = (page_entry_t *)KERNEL_PAGE_ENTRY;
+    memset(pte, 0, PAGE_SIZE);
+
+    // 初始化第一个页表的每一个页表项
+    page_entry_t *entry;
+    // tidx 为页表项索引 0 ~ 1023 <--> 0 ~ 4M
+    for (size_t tidx = 0; tidx < 1024; tidx++)
     {
-        pages[i] = get_page();
+        entry = &pte[tidx];
+        entry_init(entry, tidx);
+        // 0~1024个页表项，对应内存的0~4MB（4KB * 1024）
+        memory_map[tidx] = 1; // 设置物理内存数组，该页被占用
     }
 
-    for (size_t i = 0; i < 10; i++)
-    {
-        put_page(pages[i]);
-    }
+    BMB;
+
+    // 设置 cr3 寄存器： 设置页目录的地址
+    set_cr3((uint32)pde);
+
+    BMB;
+
+    // 分页有效 置位cr0的最高位
+    enable_page();
 }

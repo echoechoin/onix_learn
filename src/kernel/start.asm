@@ -11,5 +11,5 @@ _start:
         call console_init
         call memory_init
         call kernel_init
-        int 0x80 ; 触发异常
+        int 0x10 ; 触发异常
         jmp $

@@ -11,12 +11,12 @@
 void kernel_init()
 {
     memory_map_init();
-    memory_test();
+    mapping_init();
     gdt_init();
     interrupt_init();
     clock_init();
     time_init();
     rtc_init();
-    task_init();
+    // task_init();
     return;
 }
