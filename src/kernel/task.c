@@ -137,6 +137,11 @@ static void task_setup()
     memset(task_table, 0, sizeof(task_table));
 }
 
+void task_yield()
+{
+    schedule();
+}
+
 uint32 thread_a()
 {
     set_interrupt_state(true);
@@ -149,9 +154,12 @@ uint32 thread_a()
 uint32 thread_b()
 {
     set_interrupt_state(true);
+    bool is_print = false;
     while (true)
     {
-        printk("thread: %s\n", running_task()->name);
+        if (!is_print)
+            printk("thread: %s\n", running_task()->name);
+        is_print = true;
     }
 }
 
@@ -167,7 +175,7 @@ uint32 thread_c()
 void task_init()
 {
     task_setup();
-    task_create(thread_a, "a", 5, KERNEL_USER);
+    // task_create(thread_a, "a", 5, KERNEL_USER);
     task_create(thread_b, "b", 5, KERNEL_USER);
-    task_create(thread_c, "c", 5, KERNEL_USER);
-    }
+    // task_create(thread_c, "c", 5, KERNEL_USER);
+}
