@@ -160,3 +160,50 @@ handler_entry_table:
     dd interrupt_handler_0x2d
     dd interrupt_handler_0x2e
     dd interrupt_handler_0x2f
+
+
+extern syscall_check
+extern syscall_table
+global syscall_handler
+syscall_handler:
+    xchg bx, bx
+
+    ; 验证系统调用号
+    push eax
+    call syscall_check
+    add esp, 4
+
+    push 0x20222202
+    push 0x80
+
+    ; 保存上文寄存器信息
+    push ds
+    push es
+    push fs
+    push gs
+    pushad
+
+    push 0x80; 向中断处理函数传递参数中断向量 vector
+
+    push edx; 第三个参数
+    push ecx; 第二个参数
+    push ebx; 第一个参数
+    ; 调用系统调用处理函数，syscall_table 中存储了系统调用处理函数的指针
+    call [syscall_table + eax * 4]
+    add esp, 12; 系统调用结束恢复栈
+
+    ; 修改栈中 eax 寄存器（pushad后eax存放的位置），设置系统调用返回值
+    mov dword [esp + 8 * 4], eax
+    add esp, 4 ; 对应push 0x80
+
+    ; 恢复下文寄存器信息
+    popad
+    pop gs
+    pop fs
+    pop es
+    pop ds
+
+    ; 对应 push %1
+    ; 对应 error code 或 push magic
+    add esp, 8
+    iret

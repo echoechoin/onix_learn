@@ -13,5 +13,7 @@ _start:
         call gdt_init
         call memory_init
         call kernel_init
-        ; int 0x10 ; 触发异常
+        ; 系统调用测试，第0号系统调用
+        mov eax, 0
+        int 0x80
         jmp $
