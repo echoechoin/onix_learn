@@ -79,6 +79,7 @@ $(BUILD)/kernel/kernel.bin: $(BUILD)/kernel/start.o \
 	$(BUILD)/lib/vsprintf.o \
 	$(BUILD)/lib/stdlib.o \
 	$(BUILD)/lib/bitmap.o \
+	$(BUILD)/lib/list.o \
 
 	$(shell mkdir -p $(dir $@))
 	$(LD) -m elf_i386 -static -Ttext $(ENTRYPOINT) -o $@ $^
