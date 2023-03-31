@@ -1,8 +1,6 @@
 
 #include "onix/list.h"
 #include "onix/assert.h"
-#include "onix/memory.h"
-#include "onix/debug.h"
 
 // 初始化链表
 void list_init(list_t *list)
@@ -27,7 +25,7 @@ void list_insert_before(list_node_t *anchor, list_node_t *node)
 void list_insert_after(list_node_t *anchor, list_node_t *node)
 {
     node->prev = anchor;
-    node->next = anchor->next;
+    node->next = anchor->next; 
 
     anchor->next->prev = node;
     anchor->next = node;

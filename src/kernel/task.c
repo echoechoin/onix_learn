@@ -15,6 +15,8 @@ extern void task_switch(task_t *next);
 #define N_TASKS 64
 // 任务PCB数组
 static task_t *task_table[N_TASKS] = {0};
+// 任务默认阻塞链表
+static list_t block_list;
 
 static task_t *get_free_task()
 {
@@ -142,6 +144,44 @@ void task_yield()
     schedule();
 }
 
+// 任务阻塞
+void task_block(task_t *task, list_t *blist, task_state_t state)
+{
+    assert(!get_interrupt_state());
+    assert(task->node.next == NULL);
+    assert(task->node.prev == NULL);
+
+    if (blist == NULL)
+    {
+        blist = &block_list;
+    }
+
+    list_push(blist, &task->node);
+
+    assert(state != TASK_READY && state != TASK_RUNNING);
+
+    task->state = state;
+
+    task_t *current = running_task();
+    if (current == task)
+    {
+        schedule();
+    }
+}
+
+// 解除任务阻塞
+void task_unblock(task_t *task)
+{
+    assert(!get_interrupt_state());
+
+    list_remove(&task->node);
+
+    assert(task->node.next == NULL);
+    assert(task->node.prev == NULL);
+
+    task->state = TASK_READY;
+}
+
 uint32 thread_a()
 {
     set_interrupt_state(true);
@@ -174,6 +214,7 @@ uint32 thread_c()
 
 void task_init()
 {
+    list_init(&block_list);
     task_setup();
     // task_create(thread_a, "a", 5, KERNEL_USER);
     task_create(thread_b, "b", 5, KERNEL_USER);
