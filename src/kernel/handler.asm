@@ -17,7 +17,7 @@ interrupt_handler_%1:
 %endmacro
 
 interrupt_entry:
-    xchg bx, bx; bochs调试器的断点
+    ; xchg bx, bx; bochs调试器的断点
     ; 保存上文寄存器信息
     push ds
     push es

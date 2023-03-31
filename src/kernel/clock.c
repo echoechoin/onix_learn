@@ -1,3 +1,4 @@
+#include "onix/onix.h"
 #include "onix/io.h"
 #include "onix/interrupt.h"
 #include "onix/assert.h"
@@ -39,14 +40,24 @@ static void clock_handler(int vector)
 {
     assert(vector == 0x20);
     send_eoi(vector);
-    if (jiffies % 200 == 0)
-    {
-        start_beep();
-    }
-    schedule();  // 进程调度
-    jiffies++;   // 产生中断的次数++
-    // DEBUGK("clock jiffies %d ...\n", jiffies);
     stop_beep(); // 每次中断都判断一下是否需要关闭蜂鸣器。
+    jiffies++;   // 产生中断的次数++
+
+    task_t *task = running_task();
+    // 防止栈溢出
+    assert(task->magic == ONIX_MAGIC);
+    // 任务的时间片减一
+    task->ticks--;
+    // 设置task的jiffies
+    task->jiffies = jiffies;
+    // 如果时间片用完了，就切换任务
+    if (task->ticks == 0)
+    {
+        // 更新时间片
+        task->ticks = task->priority;
+        schedule();
+    }
+
 }
 
 static void pit_init()
@@ -70,7 +81,7 @@ static void pit_init()
     outb(PIT_CHAN2_REG, (uint8)(BEEP_COUNTER >> 8));
 }
 
-// TODO: 在我的虚拟机里不会响，不知道为什么
+// TODO: 在我的虚拟机里不会响，不知道为什么，应该是vmware的问题，onix的代码也不会响
 void start_beep()
 {
     if (!beeping)

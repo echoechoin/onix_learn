@@ -243,13 +243,11 @@ void mapping_init()
     // 设置 cr3 寄存器： 设置页目录的地址
     set_cr3((uint32)pde);
 
-    BMB;
-
+    
     // 分页有效 置位cr0的最高位
     enable_page();
 
-    BMB;
-}
+    }
 
 // 刷新虚拟地址 vaddr 的 块表 TLB
 static void flush_tlb(uint32 vaddr)
@@ -326,20 +324,3 @@ void free_kpage(uint32 vaddr, uint32 count)
     reset_page(&kernel_map, vaddr, count);
     LOGK("FREE  kernel pages 0x%p count %d\n", vaddr, count);
 }
-
-void memory_test()
-{
-    uint32 *pages = (uint32 *)(0x200000);
-    uint32 count = 0x6fe;
-    for (size_t i = 0; i < count; i++)
-    {
-        pages[i] = alloc_kpage(1);
-        LOGK("0x%x\n", i);
-    }
-
-    for (size_t i = 0; i < count; i++)
-    {
-        free_kpage(pages[i], 1);
-    }
-}
-

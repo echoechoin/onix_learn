@@ -95,3 +95,11 @@ void *memchr(const void *str, int ch, size_t n)
     }
     return NULL;
 }
+
+char *strncpy(char *dest, const char *src, size_t n)
+{
+    char *tmp = dest;
+    while (n-- > 0 && (*dest++ = *src++) != '\0')
+        /* nothing */;
+    return tmp;
+}

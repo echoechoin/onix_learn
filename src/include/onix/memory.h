@@ -39,4 +39,6 @@ void memory_init(uint32 magic, uint32 addr);
 void memory_map_init();
 void mapping_init();
 
+uint32 alloc_kpage(uint32 count);
+void free_kpage(uint32 vaddr, uint32 count);
 #endif

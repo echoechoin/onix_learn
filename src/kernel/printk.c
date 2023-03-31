@@ -2,12 +2,15 @@
 #include "onix/console.h"
 #include "onix/stdio.h"
 #include "onix/printk.h"
+#include "onix/interrupt.h"
 
 
 static char buf[1024];
 
 int printk(const char *fmt, ...)
 {
+    bool intr = interrupt_disable();
+
     va_list args;
     int i;
 
@@ -19,5 +22,6 @@ int printk(const char *fmt, ...)
 
     console_write(buf, i);
 
+    set_interrupt_state(intr);
     return i;
 }

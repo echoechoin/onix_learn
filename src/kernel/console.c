@@ -2,6 +2,7 @@
 #include "onix/types.h"
 #include "onix/debug.h"
 #include "onix/clock.h"
+#include "onix/interrupt.h"
 
 #define CRT_ADDR_REG 0x3D4              // CRT 索引寄存器
 #define CRT_DATA_REG 0x3D5              // CRT 数据寄存器
@@ -140,8 +141,7 @@ static void scroll_up()
         memcpy((void *)MEM_BASE, (void *)screen, SCREEN_SIZE);
         pos -= (screen - MEM_BASE);
         screen = MEM_BASE;
-        BMB;
-    }
+            }
 
     uint32 *ptr = (uint32 *)(screen + SCREEN_SIZE);
     for (int i = 0; i < WIDTH; i++)
@@ -166,6 +166,7 @@ static void command_lf()
 
 void console_write(char *buf, uint32 count)
 {
+
     char ch;
     while (count--)
     {
@@ -173,8 +174,6 @@ void console_write(char *buf, uint32 count)
         switch (ch)
         {
         case ASCII_NULL:
-            break;
-        case ASCII_ENQ:
             break;
         case ASCII_BEL:
             start_beep();
@@ -206,7 +205,6 @@ void console_write(char *buf, uint32 count)
                 pos -= ROW_SIZE;
                 command_lf();
             }
-            
             *((char *)pos) = ch;
             pos++;
             *((char *)pos) = attr;
@@ -214,6 +212,6 @@ void console_write(char *buf, uint32 count)
             x++;
             break;
         }
-        set_cursor();
     }
+    set_cursor();
 }

@@ -13,5 +13,7 @@ void kernel_init()
     clock_init();
     time_init();
     rtc_init();
-    // task_init();
+    // 初始化任务；启动中断，开始任务调度。
+    task_init();
+    set_interrupt_state(true);
 }
