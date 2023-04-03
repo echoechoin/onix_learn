@@ -8,6 +8,7 @@
 #include "onix/memory.h"
 #include "onix/interrupt.h"
 #include "onix/string.h"
+#include "onix/thread.h"
 
 extern bitmap_t kernel_map;
 extern void task_switch(task_t *next);
@@ -17,6 +18,10 @@ extern void task_switch(task_t *next);
 static task_t *task_table[N_TASKS] = {0};
 // 任务默认阻塞链表
 static list_t block_list;
+// idle task PCB
+static task_t *idle_task;
+// init task PCB
+static task_t *init_task;
 
 static task_t *get_free_task()
 {
@@ -58,6 +63,13 @@ static task_t *task_search(task_state_t state)
         if (task == NULL || task->ticks < ptr->ticks || ptr->jiffies < task->jiffies)
             task = ptr;
     }
+
+    // 没有找到READY状态的任务，返回idle_task
+    if (task == NULL && state == TASK_READY)
+    {
+        task = idle_task;
+    }
+
     return task;
 }
 
@@ -75,9 +87,8 @@ void schedule()
     // 切换到下一个准备好的任务
     task_t *next = task_search(TASK_READY);
 
-    // 说明只有一个任务在运行
-    if (next == NULL)
-        return;
+    // 总归是能找到idle task的
+    assert(next != NULL);
 
     // 防止栈溢出
     assert(next->magic == ONIX_MAGIC);
@@ -182,41 +193,41 @@ void task_unblock(task_t *task)
     task->state = TASK_READY;
 }
 
-uint32 thread_a()
-{
-    set_interrupt_state(true);
-    while (true)
-    {
-        printk("thread: %s\n", running_task()->name);
-    }
-}
+// uint32 thread_a()
+// {
+//     set_interrupt_state(true);
+//     while (true)
+//     {
+//         printk("thread: %s\n", running_task()->name);
+//     }
+// }
 
-uint32 thread_b()
-{
-    set_interrupt_state(true);
-    bool is_print = false;
-    while (true)
-    {
-        if (!is_print)
-            printk("thread: %s\n", running_task()->name);
-        is_print = true;
-    }
-}
+// uint32 thread_b()
+// {
+//     set_interrupt_state(true);
+//     bool is_print = false;
+//     while (true)
+//     {
+//         if (!is_print)
+//             printk("thread: %s\n", running_task()->name);
+//         is_print = true;
+//     }
+// }
 
-uint32 thread_c()
-{
-    set_interrupt_state(true);
-    while (true)
-    {
-        printk("thread: %s\n", running_task()->name);
-    }
-}
+// uint32 thread_c()
+// {
+//     set_interrupt_state(true);
+//     while (true)
+//     {
+//         printk("thread: %s\n", running_task()->name);
+//     }
+// }
 
 void task_init()
 {
     list_init(&block_list);
     task_setup();
-    // task_create(thread_a, "a", 5, KERNEL_USER);
-    task_create(thread_b, "b", 5, KERNEL_USER);
-    // task_create(thread_c, "c", 5, KERNEL_USER);
+    // 因为idle task啥也不做，所以把优先级设置为最低
+    idle_task = task_create(idle_thread, "idle", 1, KERNEL_USER);
+    init_task = task_create(init_thread, "init", 5, NORMAL_USER);
 }

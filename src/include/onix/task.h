@@ -9,7 +9,7 @@
 #define TASK_NAME_LEN 16
 
 // 进程主函数
-typedef uint32 target_t();
+typedef void (*target_t)();
 
 typedef enum task_state_t
 {
