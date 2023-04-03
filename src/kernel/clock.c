@@ -40,9 +40,9 @@ static void clock_handler(int vector)
 {
     assert(vector == 0x20);
     send_eoi(vector);
-    stop_beep(); // 每次中断都判断一下是否需要关闭蜂鸣器。
-    jiffies++;   // 产生中断的次数++
-
+    stop_beep();   // 每次中断都判断一下是否需要关闭蜂鸣器。
+    jiffies++;     // 产生中断的次数++
+    task_wakeup(); // 唤醒睡眠的任务
     task_t *task = running_task();
     // 防止栈溢出
     assert(task->magic == ONIX_MAGIC);

@@ -12,12 +12,16 @@
 
 extern bitmap_t kernel_map;
 extern void task_switch(task_t *next);
+extern uint32 volatile jiffies;
+extern uint32 jiffy;
 
 #define N_TASKS 64
 // 任务PCB数组
 static task_t *task_table[N_TASKS] = {0};
 // 任务默认阻塞链表
 static list_t block_list;
+// 任务睡眠队列
+static list_t sleep_list;
 // idle task PCB
 static task_t *idle_task;
 // init task PCB
@@ -51,7 +55,7 @@ static task_t *task_search(task_state_t state)
         if (ptr == NULL)
             continue;
         
-        if (ptr->state == !state)
+        if (ptr->state != state)
             continue;
 
         if (current == ptr)
@@ -193,6 +197,65 @@ void task_unblock(task_t *task)
     task->state = TASK_READY;
 }
 
+// 任务睡眠
+void task_sleep(uint32 ms)
+{
+    // 由于是从中断门进入的，所以eflags的IF位肯定得是0
+    assert(!get_interrupt_state());
+
+    // 需要将ms转换为ticks
+    uint32 ticks = ms / jiffy;
+    // 至少需要睡眠1个ticks
+    ticks = ticks > 0 ? ticks : 1;
+
+    task_t *current = running_task();
+    // 记录需要唤醒得时间
+    current->ticks = jiffies + ticks;
+
+    // 将当前任务加入到睡眠队列中
+    // 且该队列是按照ticks从大到小排序的
+    list_t *list = &sleep_list;
+    list_node_t *anchor = &list->tail;
+    for (list_node_t *ptr = list->head.next; ptr != &list->tail; ptr = ptr->next)
+    {
+        task_t *task = element_entry(task_t, node, ptr);
+
+        if (task->ticks > current->ticks)
+        {
+            anchor = ptr;
+            break;
+        }
+    }
+    assert(current->node.next == NULL);
+    assert(current->node.prev == NULL);
+    list_insert_before(anchor, &current->node);
+
+    // 设置为睡眠状态
+    current->state = TASK_SLEEPING;
+
+    // 切换到下一个任务
+    schedule();
+}
+
+void task_wakeup()
+{
+    assert(!get_interrupt_state());
+
+    list_t *list = &sleep_list;
+    list_node_t *ptr = list->head.next;
+    while (ptr != &list->tail)
+    {
+        task_t *task = element_entry(task_t, node, ptr);
+        ptr = ptr->next;
+
+        if (task->ticks <= jiffies)
+        {
+            list_remove(&task->node);
+            task->state = TASK_READY;
+        }
+    }
+}
+
 // uint32 thread_a()
 // {
 //     set_interrupt_state(true);
@@ -214,20 +277,15 @@ void task_unblock(task_t *task)
 //     }
 // }
 
-// uint32 thread_c()
-// {
-//     set_interrupt_state(true);
-//     while (true)
-//     {
-//         printk("thread: %s\n", running_task()->name);
-//     }
-// }
+
 
 void task_init()
 {
     list_init(&block_list);
+    list_init(&sleep_list);
     task_setup();
     // 因为idle task啥也不做，所以把优先级设置为最低
     idle_task = task_create(idle_thread, "idle", 1, KERNEL_USER);
     init_task = task_create(init_thread, "init", 5, NORMAL_USER);
+    task_create(thread_test, "thread test", 5, NORMAL_USER);
 }
