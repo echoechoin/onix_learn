@@ -2,14 +2,13 @@
 #include "onix/interrupt.h"
 #include "onix/syscall.h"
 #include "onix/debug.h"
+#include "onix/mutex.h"
 
 void idle_thread()
 {
     set_interrupt_state(true);
-    uint32 counter = 0;
     while (true)
     {
-        // LOGK("idle task.... %d\n", counter++);
         asm volatile(
             "sti\n" // 开中断
             "hlt\n" // 关闭 CPU，进入暂停状态，等待外中断的到来
@@ -18,16 +17,20 @@ void idle_thread()
     }
 }
 
+mutex_t mutex;
+
 void init_thread()
 {
+    mutex_init(&mutex);
     set_interrupt_state(true);
-
+    mutex_lock(&mutex);
     while (true)
     {
         LOGK("init task....\n");
         sleep(1000);
         // test();
     }
+    mutex_unlock(&mutex);
 }
 
 void thread_test()
@@ -35,7 +38,9 @@ void thread_test()
     set_interrupt_state(true);
     while (true)
     {
+        mutex_lock(&mutex); // 这里永远也得不到互斥量
         LOGK("thread_test....\n");
-        sleep(1000);
+        sleep(500);
+        mutex_unlock(&mutex);
     }
 }
