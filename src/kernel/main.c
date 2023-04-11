@@ -6,6 +6,7 @@
 #include "onix/task.h"
 #include "onix/gate.h"
 #include "onix/syscall.h"
+#include "onix/keyboard.h"
 
 void kernel_init()
 {
@@ -16,7 +17,10 @@ void kernel_init()
     time_init();
     rtc_init();
     syscall_init();
-    // 初始化任务；启动中断，开始任务调度。
+    // 初始化任务
     task_init();
+    keyboard_init();
+
+    // 启动中断！
     set_interrupt_state(true);
 }

@@ -3,6 +3,8 @@
 #include "onix/syscall.h"
 #include "onix/debug.h"
 #include "onix/mutex.h"
+#include "onix/keyboard.h"
+#include "onix/printk.h"
 
 void idle_thread()
 {
@@ -24,11 +26,14 @@ void init_thread()
     mutex_init(&mutex);
     set_interrupt_state(true);
     mutex_lock(&mutex);
+
+    char ch;
     while (true)
     {
-        LOGK("init task....\n");
-        sleep(1000);
-        // test();
+        bool intr = interrupt_disable();
+        keyboard_read(&ch, 1);
+        set_interrupt_state(intr);
+        printk("%c", ch);
     }
     mutex_unlock(&mutex);
 }

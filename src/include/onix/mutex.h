@@ -19,7 +19,7 @@ typedef struct lock_t
 {
     struct task_t *holder; // 持有者
     mutex_t mutex;         // 互斥量
-    u32 repeat;            // 重入次数
+    uint32 repeat;            // 重入次数
 } lock_t;
 
 // 递归互斥锁

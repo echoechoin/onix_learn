@@ -5,6 +5,10 @@
 #define EOS '\0' // END OF STRING
 #define NULL ((void*)0) // 空指针
 
+#ifndef _Bool
+#define _Bool int
+#endif
+
 #define bool _Bool
 #define true 1
 #define false 0
