@@ -116,8 +116,8 @@ protected_mode:
         ; 保存 ards_count 的地址到ebx中
         mov ebx, ards_count
 
-        ; 跳转到kernel中
-        jmp dword code_selector:0x10000
+        ; 跳转到kernel中，由于有multiboot2头，所以这里需要跳转到0x10040位置的text段
+        jmp dword code_selector:(0x10040)
 
         ud2; 表示出错
 

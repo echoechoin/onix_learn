@@ -40,30 +40,65 @@ bitmap_t kernel_map;
 // 从ards结构体中获取可用内存信息，将最大的一块可用内存信息保存到memory_base和memory_size中
 void memory_init(uint32 magic, uint32 addr)
 {
-    uint32 count = *((uint32*)(addr)); // ards 数量
-    ards_t *ptr = (ards_t *)(addr  + 4); // ards 结构体数组的首地址
-
-    if (magic != ONIX_MAGIC)
+    uint32 count = 0;
+    if (magic == ONIX_MAGIC)
     {
-        panic("memory_init: magic number is wrong!");
-    }
-
-    for (size_t i = 0; i < count; i++, ptr++)
-    {
-        LOGK("ards: base: %x, size: %x, type: %d\n", (uint32)ptr->base, (uint32)ptr->size, (uint32)ptr->type);
-
-        // 找到最大的可用内存区域
-        if (ptr->type == ZONE_VALID && ptr->size > memory_size)
+        printk("boot loader process..\n");
+        count = *((uint32*)(addr));   // ards 数量
+        ards_t *ptr = (ards_t *)(addr  + 4); // ards 结构体数组的首地址
+        for (size_t i = 0; i < count; i++, ptr++)
         {
-            memory_base = ptr->base;
-            memory_size = ptr->size;
+            LOGK("ards: base: %x, size: %x, type: %d\n", (uint32)ptr->base, (uint32)ptr->size, (uint32)ptr->type);
+
+            // 找到最大的可用内存区域
+            if (ptr->type == ZONE_VALID && ptr->size > memory_size)
+            {
+                memory_base = ptr->base;
+                memory_size = ptr->size;
+            }
         }
+    } else if (magic == MULTIBOOT2_MAGIC) {
+        printk("multiboot process..\n");
+        // *ebx:
+        // uint32 total_size; // ebx指向的boot info的总大小 没什么用
+        // uint32 reserved;   // 因为要8字节对齐，所以这里会有4字节的填充
+        // multi_tag_t tags[];
+
+        // uint32 size = *((uint32*)(addr)); // addr == ebx
+        multi_tag_t *tag = (multi_tag_t *)(addr + 8);
+        while (tag->type != MULTIBOOT_TAG_TYPE_END) {
+            // 如果type == MULTIBOOT_TAG_TYPE_MMAP则表示内存映射表
+            if (tag->type == MULTIBOOT_TAG_TYPE_MMAP)
+                break;
+            // 否者找下一个tag tag对齐到了8字节
+            tag = (multi_tag_t *)((uint32)tag + ((tag->size + 7) & ~7));
+        }
+
+        // 将此tag转换为内存映射表tag
+        multi_tag_mmap_t *mtag = (multi_tag_mmap_t *)tag;
+        multi_mmap_entry_t *entry = mtag->entries;
+
+        while ((uint32)entry < (uint32)mtag + mtag->size) {
+            LOGK("Memory base: %x, size: %x, type: %d\n", \
+                (uint32)entry->addr, (uint32)entry->len, (uint32)entry->type);
+            count++;
+            // 获取最大的一段可用内存
+            if (entry->type == ZONE_VALID && entry->len > memory_size)
+            {
+                memory_base = entry->addr;
+                memory_size = entry->len;
+            }
+            // 下一个entry
+            entry = (multi_mmap_entry_t *)((uint32)entry + mtag->entry_size);
+        }
+        
+    } else {
+        panic("unknown boot loader magic number: %x\n", magic);
     }
 
     LOGK("ARDS count %d\n", count);
     LOGK("Memory base 0x%p\n", (uint32)memory_base);
     LOGK("Memory size 0x%p\n", (uint32)memory_size);
-
     assert(memory_base == MEMORY_BASE); // 内存开始的位置为 1M
     assert((memory_size & 0xfff) == 0); // 要求按页对齐
 

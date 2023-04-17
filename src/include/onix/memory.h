@@ -7,7 +7,10 @@
 #include "onix/assert.h"
 #include "onix/stdlib.h"
 #include "onix/string.h"
-#include <onix/bitmap.h>
+#include "onix/bitmap.h"
+#include "onix/printk.h"
+#include "onix/debug.h"
+#include "onix/multiboot2.h"
 
 #define PAGE_SIZE 0x1000     // 一页的大小 4K
 #define MEMORY_BASE 0x100000 // 1M，可用内存开始的位置
