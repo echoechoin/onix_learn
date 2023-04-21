@@ -5,6 +5,7 @@
 #include "onix/mutex.h"
 #include "onix/keyboard.h"
 #include "onix/printk.h"
+#include "onix/task.h"
 
 void idle_thread()
 {
@@ -21,31 +22,36 @@ void idle_thread()
 
 mutex_t mutex;
 
-void init_thread()
+static void real_init_thread()
 {
-    mutex_init(&mutex);
-    set_interrupt_state(true);
-    mutex_lock(&mutex);
+    uint32 counter = 0;
 
     char ch;
     while (true)
     {
-        bool intr = interrupt_disable();
-        keyboard_read(&ch, 1);
-        set_interrupt_state(intr);
-        printk("%c", ch);
+        BMB;
+        // asm volatile("in $0x92, %ax\n");
+        // sleep(1000);
+        // LOGK("%c\n", ch);
+        // printk("%c", ch);
     }
-    mutex_unlock(&mutex);
 }
+
+void init_thread()
+{
+    // set_interrupt_state(true); 因为在进入用户态之前会设置iflag，所以这里不需要设置
+    // 为栈顶有足够的空间，因为task_to_user_mode中有一些局部变量，但是intr_frame也要存储在栈顶位置，如果没有足够的空间，修改intr_frame也会修改到task_to_user_mode中的局部变量
+    char temp[100];
+    task_to_user_mode(real_init_thread);
+}
+
 
 void thread_test()
 {
     set_interrupt_state(true);
     while (true)
     {
-        mutex_lock(&mutex); // 这里永远也得不到互斥量
         LOGK("thread_test....\n");
         sleep(500);
-        mutex_unlock(&mutex);
     }
 }

@@ -24,6 +24,7 @@ extern console_init
 extern kernel_init
 extern memory_init
 extern gdt_init
+extern tss_init
 extern gdt_ptr
 
 code_selector equ (1 << 3)
@@ -42,6 +43,7 @@ _start:
 
 _next:
         ; 加载data_selector
+        call tss_init
         mov ax, data_selector
         mov ds, ax
         mov es, ax

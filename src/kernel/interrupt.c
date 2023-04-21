@@ -193,7 +193,7 @@ static void idt_init()
     gate->reserved = 0;       // 保留不用
     gate->type = 0b1110;      // 中断门
     gate->segment = 0;        // 系统段
-    gate->DPL = 3;            // 用户态
+    gate->DPL = 3;            // 用户态 因此int 0x80中断才可以在用户态被调用！！！
     gate->present = 1;        // 有效
 
 
@@ -238,4 +238,4 @@ void interrupt_init()
 {
     pic_init();
     idt_init();
-    }
+}

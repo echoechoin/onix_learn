@@ -1,6 +1,7 @@
 
 global task_switch
 task_switch:
+    ; 调用task_switch的时候会将eip压入栈中
     ; 保存栈帧
     push ebp 
     mov ebp, esp
@@ -33,3 +34,5 @@ task_switch:
     ; 从task_switch返回, 因为栈中还有eip的值；
     ; 所以这里的ret指令会直接跳转到新任务的eip处。
     ret
+
+    ; 非常巧妙!!!

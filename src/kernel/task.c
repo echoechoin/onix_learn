@@ -9,11 +9,14 @@
 #include "onix/interrupt.h"
 #include "onix/string.h"
 #include "onix/thread.h"
+#include "onix/global.h"
 
 extern bitmap_t kernel_map;
 extern void task_switch(task_t *next);
 extern uint32 volatile jiffies;
 extern uint32 jiffy;
+extern tss_t tss;
+
 
 #define N_TASKS 64
 // 任务PCB数组
@@ -78,11 +81,22 @@ static task_t *task_search(task_state_t state)
 }
 
 task_t *running_task()
-{   // 获取当前运行的进程的PCB
+{   // 获取当前运行的进程的PCB, 也就是任务栈的起始地址
     // 原理就是通过读取esp寄存器的值与上一页的地址，就可以得到当前运行的进程的PCB
     asm volatile(
         "movl %esp, %eax\n"
         "andl $0xfffff000, %eax\n");
+}
+
+// 激活任务：切换到用户态任务的话需要保存当前的esp0到tss中
+void task_activate(task_t *task)
+{
+    assert(task->magic == ONIX_MAGIC);
+
+    if (task->uid != KERNEL_USER)
+    {
+        tss.esp0 = (uint32)task + PAGE_SIZE;
+    }
 }
 
 void schedule()
@@ -104,7 +118,60 @@ void schedule()
     if (next == current)
         return;
 
-    task_switch(next);
+    task_activate(next);
+    task_switch(next); // 这里会将eip压入栈中
+}
+
+void task_to_user_mode(target_t target)
+{
+    task_t *task = running_task();
+
+    // 在栈顶构造中断帧，这样当中断返回时，就会进入用户态
+    uint32 addr = (uint32)task + PAGE_SIZE;
+    addr -= sizeof(intr_frame_t);
+    intr_frame_t *iframe = (intr_frame_t *)addr;
+
+    // 保存一些无关的值到frame中，方便后续的调试
+    iframe->vector = 0x20;
+    iframe->edi = 1;
+    iframe->esi = 2;
+    iframe->ebp = 3;
+    iframe->esp_dummy = 4;
+    iframe->ebx = 5;
+    iframe->edx = 6;
+    iframe->ecx = 7;
+    iframe->eax = 8;
+
+    // 设置段寄存器
+    iframe->gs = 0;
+    iframe->ds = USER_DATA_SELECTOR;
+    iframe->es = USER_DATA_SELECTOR;
+    iframe->fs = USER_DATA_SELECTOR;
+    iframe->cs = USER_CODE_SELECTOR;
+    iframe->ss3 = USER_DATA_SELECTOR; // 用户态栈段选择子
+
+    iframe->error = ONIX_MAGIC;
+
+    // 目前用户态和内核态共用一个页表
+    uint32 stack3 = alloc_kpage(1); // todo replace to user stack
+
+    iframe->eip = (uint32)target;
+    // IF位为1，允许中断，用于任务调度和系统调用
+    // IO previlege level 为 0，不允许用户态访问 IO：in和out指令会在用户态发生异常
+    iframe->eflags = (0 << 12 | 1 << 9);
+    // 设置用户态栈顶
+    iframe->esp3 = stack3 + PAGE_SIZE;
+
+    // 设置栈顶指针，恢复用户态中断帧（也就是上面我们存储的中断帧iframe）
+    asm volatile("movl %0, %%esp"::"m"(iframe));
+    asm volatile("addl $4, %esp"); // 跳过vector
+    asm volatile("popal"); // 从栈中弹出寄存器
+    asm volatile("pop %gs");
+    asm volatile("pop %fs");
+    asm volatile("pop %es");
+    asm volatile("pop %ds");
+    asm volatile("addl $8, %esp");
+    asm volatile("iret");
 }
 
 // 创建内核线程
@@ -214,6 +281,7 @@ void task_sleep(uint32 ms)
 
     // 将当前任务加入到睡眠队列中
     // 且该队列是按照ticks从大到小排序的
+    // 其实使用红黑树更好？
     list_t *list = &sleep_list;
     list_node_t *anchor = &list->tail;
     for (list_node_t *ptr = list->head.next; ptr != &list->tail; ptr = ptr->next)
