@@ -10,38 +10,22 @@ mov es, ax					; 额外数据段寄存器 字符串操作(movsb等); 实模式�
 mov ss, ax
 mov sp, 0x7c00   			; 栈从高字节向低字节递减
 
-; 不再直接操作显存
-; mov ax, 0xb800				; 0xb8000 文本显示器的内存区域
-; mov ds, ax					; 写入到段寄存器ds，在实模式下，DS 的值会影响内存寻址
-
-; 而使用BIOS中断打印启动日志
-mov si, booting             ; si 寄存器通常用于字符串操作
-call print
-
 ; 读取磁盘
 mov edi, 0x1000; 读取的目标内存
-mov ecx, 0; 起始扇区
-mov bl, 1; 扇区数量
-
+mov ecx, 2; 起始扇区
+mov bl, 3; 扇区数量
 call read_disk
 
-jmp $						; 跳转到当前地址
+; 检查磁盘读取内容是否正确
+cmp word [0x1000], 0x55aa
+jnz error
+jmp 0:0x1002                ; 跳转到0x1002
 
-print:
-    mov ah, 0x0e    ; 设置为打印字符串功能
-.next:
-    mov al, [si]    ; 输入字符，间接寻址，告诉汇编器，SI 的值不是操作数本身，而是获取si
-    cmp al, 0       ; 表示到字符串结尾
-    jz .done
-    int 0x10        ; 输出字符，光标位置修改
-    inc si          ; si++
-    jmp .next
-.done:
-    ret
-
+;;;;;;;;;;;;;;;;;;;;;;;
 ; bl 读取扇区数量
 ; ecx 起始扇区
 ; edi 目标内存
+;;;;;;;;;;;;;;;;;;;;;;;
 read_disk:
 
     ; 设置读写扇区的数量
@@ -182,9 +166,24 @@ write_disk:
             loop .writew
         ret
 
-; 存放booting字符串
-booting:
-    db "Booting OS...", 10, 13, 0 ; \n\r
+print:
+    mov ah, 0x0e
+.next:
+    mov al, [si]
+    cmp al, 0
+    jz .done
+    int 0x10
+    inc si
+    jmp .next
+.done:
+    ret
+
+error:
+    mov si, .msg
+    call print
+    hlt; 让 CPU 停止
+    jmp $
+    .msg db "Booting Error!!!", 10, 13, 0
 
 times 510 - ($ - $$) db 0	; 填充 0, 直到填充到 510 字节
 
