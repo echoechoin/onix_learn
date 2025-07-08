@@ -3,7 +3,7 @@
 dw 0x55aa
 
 ; 使用BIOS中断打印启动日志
-mov si, booting             ; si 寄存器通常用于字符串操作
+mov si, loading             ; si 寄存器通常用于字符串操作
 call print
 
 detect_memory:
@@ -55,7 +55,24 @@ detect_memory:
     mov edx, [ards_buffer + si + 16]
     add si, 20
     loop .show
-jmp $
+
+prepare_protected_mode:
+    cli; 关闭中断
+
+    ; 打开 A20 线
+    in al,  0x92
+    or al, 0b10
+    out 0x92, al
+
+    lgdt [gdt_ptr]; 加载 gdt
+
+    ; 启动保护模式
+    mov eax, cr0
+    or eax, 1
+    mov cr0, eax
+
+    ; 用跳转来刷新缓存，启用保护模式
+    jmp dword code_selector:protect_mode
 
 print:
     mov ah, 0x0e    ; 设置为打印字符串功能
@@ -76,10 +93,59 @@ error:
     jmp $
     .msg db "Loading Error!!!", 10, 13, 0
 
-booting:
+loading:
     db "Loading OS...", 10, 13, 0 ; \n\r
 detecting:
     db "Detecting Memory Success...", 10, 13, 0; \n\r
+
+
+[bits 32]
+protect_mode:
+    mov ax, data_selector
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax; 初始化段寄存器
+
+    mov esp, 0x10000; 修改栈顶
+    mov byte [0xb8000], 'P' ; VGA文本模式
+    mov byte [0xb8001], 0xd ; 粉红色
+
+jmp $;
+
+code_selector equ (1 << 3)
+data_selector equ (2 << 3)
+
+memory_base equ 0; 内存开始的位置：基地址
+
+; 内存界限 4G / 4K - 1
+memory_limit equ ((1024 * 1024 * 1024 * 4) / (1024 * 4)) - 1
+
+gdt_ptr:
+    dw (gdt_end - gdt_base) - 1 ; 大小,（以字节为单位，减 1 符合 x86 规范）。
+    dd gdt_base ; 基地址
+gdt_base:
+    dd 0, 0; NULL 描述符 GDT 的第一个描述符必须是 NULL 描述符，全为 0，用作占位符。
+gdt_code:
+    dw memory_limit & 0xffff; 段界限 0 ~ 15 位
+    dw memory_base & 0xffff; // 基地址 0 ~ 16 位
+    db (memory_base >> 16) & 0xff; // 基地址 0 ~ 16 位
+    ; 存在 - dlp 0 - S _ 代码 - 非依从 - 可读 - 没有被访问过
+    db 0b_1_00_1_1_0_1_0;
+    ; 4k - 32 位 - 不是 64 位 - 段界限 16 ~ 19
+    db 0b1_1_0_0_0000 | (memory_limit >> 16) & 0xf;
+    db (memory_base >> 24) & 0xff; 基地址 24 ~ 31 位
+gdt_data:
+    dw memory_limit & 0xffff; 段界限 0 ~ 15 位
+    dw memory_base & 0xffff; // 基地址 0 ~ 16 位
+    db (memory_base >> 16) & 0xff; // 基地址 0 ~ 16 位
+    ; 存在 - dlp 0 - S _ 数据 - 向上 - 可写 - 没有被访问过
+    db 0b_1_00_1_0_0_1_0;
+    ; 4k - 32 位 - 不是 64 位 - 段界限 16 ~ 19
+    db 0b1_1_0_0_0000 | (memory_limit >> 16) & 0xf;
+    db (memory_base >> 24) & 0xff; 基地址 24 ~ 31 位
+gdt_end:
 
 ards_count:
     dw 0
