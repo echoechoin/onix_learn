@@ -58,7 +58,9 @@ $(TARGET)/kernel.bin: \
 	 $(TARGET)/kernel/printk.o \
 	 $(TARGET)/kernel/assert.o \
 	 $(TARGET)/kernel/debug.o \
-	$(TARGET)/kernel/global.o \
+	 $(TARGET)/kernel/global.o \
+	 $(TARGET)/kernel/task.o \
+	 $(TARGET)/kernel/schedule.o \
 	 $(TARGET)/lib/string.o \
 	 $(TARGET)/lib/vsprintf.o \
 
