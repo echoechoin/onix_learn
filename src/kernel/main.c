@@ -1,8 +1,6 @@
 #include "os/os.h"
-#include "os/types.h"
-#include "os/io.h"
-#include "os/string.h"
 #include "os/console.h"
+#include "os/printk.h"
 
 char message[] = "hello onix!!!\n";
 char buf[1024];
@@ -10,9 +8,8 @@ char buf[1024];
 void kernel_init()
 {
     console_init();
-    while (true)
-    {
-        console_write(message, sizeof(message) - 1);
+    while (true) {
+        printk("hello world!\n");
     }
 
     return;

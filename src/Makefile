@@ -55,7 +55,9 @@ $(TARGET)/kernel.bin: \
 	 $(TARGET)/kernel/main.o \
 	 $(TARGET)/kernel/io.o \
 	 $(TARGET)/kernel/console.o \
+	 $(TARGET)/kernel/printk.o \
 	 $(TARGET)/lib/string.o \
+	 $(TARGET)/lib/vsprintf.o \
 
 	$(shell mkdir -p $(dir $@))
 	$(LD) -m elf_i386 -static $^ -o $@ -T linker.ld

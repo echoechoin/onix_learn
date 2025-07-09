@@ -1,1 +1,5 @@
 target
+src/compile_commands.json
+
+.cache
+.gitignore
