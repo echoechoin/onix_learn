@@ -1,15 +1,19 @@
 #include "os/os.h"
+#include "os/types.h"
+#include "os/io.h"
+#include "os/string.h"
+#include "os/console.h"
 
-int magic = OS_MAGIC;
-char message[] = "hello onix!!!"; // .data
-char buf[1024];                   // .bss
+char message[] = "hello onix!!!\n";
+char buf[1024];
 
-extern void kernel_init()
+void kernel_init()
 {
-    char *video = (char *) 0xb8000; // 文本显示器的内存位置
-    video[2] = message[0];
-    for (int i = 0; i < sizeof(message); i++)
+    console_init();
+    while (true)
     {
-        video[i * 2] = message[i];
+        console_write(message, sizeof(message) - 1);
     }
+
+    return;
 }

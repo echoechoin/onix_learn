@@ -23,6 +23,7 @@ INCLUDE:=-I./include
 TARGET = ../target
 BOOTLOADER = bootloader
 KERNEL = kernel
+LIB = lib
 
 .PHONY: all clean
 
@@ -43,11 +44,18 @@ $(TARGET)/kernel/%.o: $(KERNEL)/%.c
 	@$(shell mkdir -p $(dir $@))
 	$(CC) $(CFLAGS) $(DEBUG) $(INCLUDE) -c $< -o $@
 
+$(TARGET)/lib/%.o: $(LIB)/%.c
+	@$(shell mkdir -p $(dir $@))
+	$(CC) $(CFLAGS) $(DEBUG) $(INCLUDE) -c $< -o $@
+
 # -m elf_i386 指定生成的目标文件的目标体系结构
 # -Ttext $(ENTRYPOINT) 用于指定程序的 代码段（.text 段）的起始地址。
 $(TARGET)/kernel.bin: \
      $(TARGET)/kernel/start.o \
 	 $(TARGET)/kernel/main.o \
+	 $(TARGET)/kernel/io.o \
+	 $(TARGET)/kernel/console.o \
+	 $(TARGET)/lib/string.o \
 
 	$(shell mkdir -p $(dir $@))
 	$(LD) -m elf_i386 -static $^ -o $@ -T linker.ld
@@ -62,7 +70,7 @@ $(TARGET)/system.map: $(TARGET)/kernel.bin
 # 初始化5个扇区（2560字节）
 # 写第0个扇区boot.bin
 # seek=2 从第二个扇区开始 count=4 写入 loader.bin
-# 结果如下: boot 0 loader 0 0 0
+# 结果如下: boot(1) empty(1) loader(1) system(n)
 $(TARGET)/image.bin: \
 	 $(TARGET)/bootloader/boot.bin \
 	 $(TARGET)/bootloader/loader.bin \
@@ -72,7 +80,7 @@ $(TARGET)/image.bin: \
 	$(DD) if=/dev/zero of=$@ bs=512 count=256
 	$(DD) if=$(TARGET)/bootloader/boot.bin   of=$@ bs=512 count=1 seek=0 conv=notrunc
 	$(DD) if=$(TARGET)/bootloader/loader.bin of=$@ bs=512 count=1 seek=2 conv=notrunc
-	$(DD) if=$(TARGET)/system.bin of=$@ bs=512 count=1 seek=3 conv=notrunc
+	$(DD) if=$(TARGET)/system.bin of=$@ bs=512 count=200 seek=3 conv=notrunc
 
 # -hda 告诉 QEMU 将指定的文件（file）作为虚拟机的第一个 IDE 硬盘
 # qemu会将硬盘的第一个扇区加载到0x7c00位置
