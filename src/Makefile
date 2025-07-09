@@ -57,6 +57,8 @@ $(TARGET)/kernel.bin: \
 	 $(TARGET)/kernel/console.o \
 	 $(TARGET)/kernel/printk.o \
 	 $(TARGET)/kernel/assert.o \
+	 $(TARGET)/kernel/debug.o \
+	$(TARGET)/kernel/global.o \
 	 $(TARGET)/lib/string.o \
 	 $(TARGET)/lib/vsprintf.o \
 
