@@ -1,6 +1,7 @@
 #include "os/os.h"
 #include "os/console.h"
 #include "os/printk.h"
+#include "os/assert.h"
 
 char message[] = "hello onix!!!\n";
 char buf[1024];
@@ -8,9 +9,8 @@ char buf[1024];
 void kernel_init()
 {
     console_init();
-    while (true) {
-        printk("hello world!\n");
-    }
+    printk("hello world!\n");
+    panic("kernel_init()\n");
 
     return;
 }
