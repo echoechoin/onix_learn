@@ -1,10 +1,23 @@
-CC = /opt/homebrew/Cellar/x86_64-elf-gcc/15.1.0/bin/x86_64-elf-gcc
-LD = /opt/homebrew/Cellar/x86_64-elf-binutils/2.44/bin/x86_64-elf-ld
-OBJCOPY = /opt/homebrew/Cellar/x86_64-elf-binutils/2.44/bin/x86_64-elf-objcopy
-NM = /opt/homebrew/Cellar/x86_64-elf-binutils/2.44/bin/x86_64-elf-nm
-NASM = /opt/homebrew/bin/nasm
-DD = /bin/dd
-QEMU = /opt/homebrew/Cellar/qemu/10.0.0/bin/qemu-system-i386
+# 获取系统类型
+UNAME_S := $(shell uname -s)
+
+CC      = gcc
+LD      = ld
+OBJCOPY = objcopy
+NM      = nm
+NASM    = nasm
+QEMU    = qemu-system-i386
+DD      = dd
+
+# 判断是否为macOS并设置编译器
+ifeq ($(UNAME_S), Darwin)
+    CC      = /opt/homebrew/Cellar/x86_64-elf-gcc/15.1.0/bin/x86_64-elf-gcc
+	LD      = /opt/homebrew/Cellar/x86_64-elf-binutils/2.44/bin/x86_64-elf-ld
+	OBJCOPY = /opt/homebrew/Cellar/x86_64-elf-binutils/2.44/bin/x86_64-elf-objcopy
+	NM      = /opt/homebrew/Cellar/x86_64-elf-binutils/2.44/bin/x86_64-elf-nm
+	NASM    = /opt/homebrew/bin/nasm
+	QEMU    = /opt/homebrew/Cellar/qemu/10.0.0/bin/qemu-system-i386
+endif
 
 ENTRYPOINT:=0x10000
 
