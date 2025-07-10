@@ -1,5 +1,5 @@
-#ifndef ONIX_ASSERT_H
-#define ONIX_ASSERT_H
+#ifndef OS_ASSERT_H
+#define OS_ASSERT_H
 
 void assertion_failure(char *exp, char *file, char *base, int line);
 

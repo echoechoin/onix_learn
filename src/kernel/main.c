@@ -6,9 +6,7 @@
 #include "os/stdlib.h"
 #include "os/task.h"
 #include "os/interrupt.h"
-
-char message[] = "hello onix!!!\n";
-char buf[1024];
+#include "os/clock.h"
 
 void kernel_init()
 {
@@ -17,5 +15,7 @@ void kernel_init()
     show_gdt_list();
     // task_init();
     interrupt_init();
+    clock_init();
+    sti();
     return;
 }

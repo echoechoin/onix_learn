@@ -3,6 +3,7 @@
 #include <os/debug.h>
 #include <os/io.h>
 #include <os/stdlib.h>
+#include <os/assert.h>
 
 gate_t idt[IDT_SIZE];
 pointer_t idt_ptr;
@@ -66,6 +67,28 @@ void exception_handler(
     printk("      ESP : 0x%08X\n", esp);
 
     hang();
+}
+
+void set_interrupt_handler(uint32_t irq, handler_t handler)
+{
+    assert(irq >= 0 && irq < 16);
+    handler_table[IRQ_MASTER_NR + irq] = handler;
+}
+
+void set_interrupt_mask(uint32_t irq, bool enable)
+{
+    assert(irq >= 0 && irq < 16);
+    uint16_t port;
+    if (irq < 8)
+        port = PIC_M_DATA;
+    else {
+        port = PIC_S_DATA;
+        irq -= 8;
+    }
+    if (enable)
+        outb(port, inb(port) & ~(1 << irq));
+    else
+        outb(port, inb(port) | (1 << irq));
 }
 
 // 通知中断控制器，中断处理结束
@@ -143,6 +166,5 @@ void interrupt_init()
 {
     pic_init();
     idt_init();
-    sti();
 }
 

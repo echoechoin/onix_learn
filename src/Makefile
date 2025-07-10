@@ -63,6 +63,7 @@ $(TARGET)/kernel.bin: \
 	 $(TARGET)/kernel/schedule.o \
 	 $(TARGET)/kernel/handler.o \
 	 $(TARGET)/kernel/interrupt.o \
+	 $(TARGET)/kernel/clock.o \
 	 $(TARGET)/lib/string.o \
 	 $(TARGET)/lib/stdlib.o \
 	 $(TARGET)/lib/vsprintf.o \
