@@ -14,7 +14,6 @@ void clock_handler(int vector)
     send_eoi(vector);
 
     jiffies++;
-    DEBUGK("clock jiffies %d ...\n", jiffies);
 }
 
 void pit_init()

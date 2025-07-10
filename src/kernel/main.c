@@ -7,6 +7,8 @@
 #include "os/task.h"
 #include "os/interrupt.h"
 #include "os/clock.h"
+#include "os/rtc.h"
+#include "os/time.h"
 
 void kernel_init()
 {
@@ -16,6 +18,8 @@ void kernel_init()
     // task_init();
     interrupt_init();
     clock_init();
+    rtc_init();
+    time_init();
     sti();
     return;
 }

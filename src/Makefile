@@ -77,6 +77,8 @@ $(TARGET)/kernel.bin: \
 	 $(TARGET)/kernel/handler.o \
 	 $(TARGET)/kernel/interrupt.o \
 	 $(TARGET)/kernel/clock.o \
+	 $(TARGET)/kernel/rtc.o \
+	 $(TARGET)/kernel/time.o \
 	 $(TARGET)/lib/string.o \
 	 $(TARGET)/lib/stdlib.o \
 	 $(TARGET)/lib/vsprintf.o \
