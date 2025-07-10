@@ -1,7 +1,7 @@
 #ifndef OS_H
 #define OS_H
 
-#define OS_MAGIC 20220205
+#define OS_MAGIC 0xdeadbeef
 
 void kernel_init(); //初始化内核
 

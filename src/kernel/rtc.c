@@ -97,13 +97,13 @@ void rtc_init()
     uint8_t prev;
 
     // cmos_write(CMOS_B, 0b01000010); // 打开周期中断
-    cmos_write(CMOS_B, 0b00100010); // 打开闹钟中断
-    cmos_read(CMOS_C); // 读 C 寄存器，以允许 CMOS 中断
+    // cmos_write(CMOS_B, 0b00100010); // 打开闹钟中断
+    // cmos_read(CMOS_C); // 读 C 寄存器，以允许 CMOS 中断
 
-    set_alarm(2);
+    // set_alarm(2);
 
     // 设置中断频率 250ms
-    outb(CMOS_A, (inb(CMOS_A) & 0xf) | 0b1110);
+    // outb(CMOS_A, (inb(CMOS_A) & 0xf) | 0b1110);
 
     set_interrupt_handler(IRQ_RTC, rtc_handler);
     set_interrupt_mask(IRQ_RTC, true);

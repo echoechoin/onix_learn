@@ -33,7 +33,7 @@ detect_memory:
     add di, cx
 
     ; 将结构体数量加一
-    inc word [ards_count]
+    inc dword [ards_count]
 
     ; 0表示最后一个ards
     cmp ebx, 0
@@ -115,6 +115,10 @@ protect_mode:
     mov bl, 200; 扇区数量
 
     call read_disk
+
+    mov eax, 0xdeadbeef
+    mov [0xfff6], eax; 内核魔数
+    mov dword [0xfff2], ards_count; ards 数量指针
 
     jmp dword code_selector:0x10000
 
@@ -226,5 +230,5 @@ gdt_data:
 gdt_end:
 
 ards_count:
-    dw 0
+    dd 0
 ards_buffer:

@@ -65,6 +65,7 @@ $(TARGET)/lib/%.o: $(LIB)/%.c
 # -Ttext $(ENTRYPOINT) 用于指定程序的 代码段（.text 段）的起始地址。
 $(TARGET)/kernel.bin: \
      $(TARGET)/kernel/start.o \
+	 $(TARGET)/kernel/memory.o \
 	 $(TARGET)/kernel/main.o \
 	 $(TARGET)/kernel/io.o \
 	 $(TARGET)/kernel/console.o \
@@ -115,7 +116,7 @@ run: $(TARGET)/image.bin
 
 # -S 表示阻塞等待 gdb 执行 continue
 debug: $(TARGET)/image.bin
-	$(QEMU) -m 16M -gdb tcp::1234 -hda $(TARGET)/image.bin -S
+	$(QEMU) -m 128M -gdb tcp::1234 -hda $(TARGET)/image.bin -S
 
 gdb:
 	gdb -x gdb_script.gdb

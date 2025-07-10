@@ -9,6 +9,13 @@ _start:
     ; 设置参数为msg
 msg:
     db "Hello kernel!", 0
+
+    mov eax, [0xfff2]; ards 数量指针
+    push eax
+
+    mov eax, [0xfff6]; 内核魔数
+    push eax
+
     call kernel_init
     jmp $; 阻塞
 
