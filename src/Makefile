@@ -61,6 +61,8 @@ $(TARGET)/kernel.bin: \
 	 $(TARGET)/kernel/global.o \
 	 $(TARGET)/kernel/task.o \
 	 $(TARGET)/kernel/schedule.o \
+	 $(TARGET)/kernel/handler.o \
+	 $(TARGET)/kernel/interrupt.o \
 	 $(TARGET)/lib/string.o \
 	 $(TARGET)/lib/vsprintf.o \
 

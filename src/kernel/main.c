@@ -4,6 +4,7 @@
 #include "os/assert.h"
 #include "os/global.h"
 #include "os/task.h"
+#include "os/interrupt.h"
 
 char message[] = "hello onix!!!\n";
 char buf[1024];
@@ -13,7 +14,8 @@ void kernel_init()
     console_init();
     gdt_init();
     show_gdt_list();
-    task_init();
-
+    // task_init();
+    interrupt_init();
+    int a = 2/0;
     return;
 }
