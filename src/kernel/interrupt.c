@@ -1,14 +1,22 @@
 #include <os/interrupt.h>
 #include <os/global.h>
 #include <os/debug.h>
+#include <os/io.h>
+#include <os/stdlib.h>
 
 gate_t idt[IDT_SIZE];
 pointer_t idt_ptr;
 
-#define ENTRY_SIZE 0x20
+#define ENTRY_SIZE 0x30
 handler_t handler_table[IDT_SIZE];
 extern void interrupt_handler(int);
 extern handler_t handler_entry_table[ENTRY_SIZE];
+
+#define PIC_M_CTRL 0x20 // 主片的控制端口
+#define PIC_M_DATA 0x21 // 主片的数据端口
+#define PIC_S_CTRL 0xa0 // 从片的控制端口
+#define PIC_S_DATA 0xa1 // 从片的数据端口
+#define PIC_EOI 0x20    // 通知中断控制器中断结束
 
 static char *messages[] = {
     "#DE Divide Error\0",
@@ -35,22 +43,67 @@ static char *messages[] = {
     "#CP Control Protection Exception\0",
 };
 
-void exception_handler(int vector)
+void exception_handler(
+    int vector,
+    uint32_t edi, uint32_t esi, uint32_t ebp, uint32_t esp,
+    uint32_t ebx, uint32_t edx, uint32_t ecx, uint32_t eax,
+    uint32_t gs, uint32_t fs, uint32_t es, uint32_t ds,
+    uint32_t vector0, uint32_t error, uint32_t eip, uint32_t cs, uint32_t eflags)
 {
     char *message = NULL;
+
     if (vector < 22)
         message = messages[vector];
     else
         message = messages[15];
 
-    printk("Exception : [0x%02X] %s \n", vector, messages[vector]);
-    // 阻塞
-    while (true)
-        ;
+    printk("\nEXCEPTION : %s \n", messages[vector]);
+    printk("   VECTOR : 0x%02X\n", vector);
+    printk("    ERROR : 0x%08X\n", error);
+    printk("   EFLAGS : 0x%08X\n", eflags);
+    printk("       CS : 0x%02X\n", cs);
+    printk("      EIP : 0x%08X\n", eip);
+    printk("      ESP : 0x%08X\n", esp);
+
+    hang();
+}
+
+// 通知中断控制器，中断处理结束
+void send_eoi(int vector)
+{
+    if (vector >= 0x20 && vector < 0x30)
+        outb(PIC_M_CTRL, PIC_EOI);
+
+    if (vector >= 0x28 && vector < 0x30)
+        outb(PIC_S_CTRL, PIC_EOI);
 }
 
 
-void interrupt_init()
+// 初始化中断控制器
+void pic_init()
+{
+    outb(PIC_M_CTRL, 0b00010001); // ICW1: 边沿触发, 级联 8259, 需要ICW4.
+    outb(PIC_M_DATA, 0x20);       // ICW2: 起始中断向量号 0x20
+    outb(PIC_M_DATA, 0b00000100); // ICW3: IR2接从片.
+    outb(PIC_M_DATA, 0b00000101); // ICW4: 主片 8086模式, 正常EOI
+
+    outb(PIC_S_CTRL, 0b00010001); // ICW1: 边沿触发, 级联 8259, 需要ICW4.
+    outb(PIC_S_DATA, 0x28);       // ICW2: 起始中断向量号 0x28
+    outb(PIC_S_DATA, 2);          // ICW3: 设置从片连接到主片的 IR2 引脚
+    outb(PIC_S_DATA, 0b00000001); // ICW4: 从片 8086模式, 正常EOI
+
+    outb(PIC_M_DATA, 0b11111110); // 主片关闭所有中断 仅打开时钟中断
+    outb(PIC_S_DATA, 0b11111111); // 从片关闭所有中断
+}
+
+// 默认中断函数
+void default_handler(int vector)
+{
+    send_eoi(vector);
+    printk("hello world!\n");
+}
+
+void idt_init()
 {
     for (size_t i = 0; i < IDT_SIZE; i++)
     {
@@ -67,10 +120,29 @@ void interrupt_init()
         gate->present = 1;       // 有效
     }
 
+    // 异常中断
     for (size_t i = 0; i < 0x20; i++)
         handler_table[i] = exception_handler;
 
+    // 外中断
+    for (size_t i = 20; i < ENTRY_SIZE; i++)
+        handler_table[i] = default_handler;
+
     idt_ptr.base = (uint32_t)idt;
     idt_ptr.limit = sizeof(idt) - 1;
-    asm volatile("lidt idt_ptr\n");
+    asm volatile("lidt idt_ptr");
 }
+
+// 允许CPU响应中断
+void sti()
+{
+    asm volatile("sti");
+}
+
+void interrupt_init()
+{
+    pic_init();
+    idt_init();
+    sti();
+}
+

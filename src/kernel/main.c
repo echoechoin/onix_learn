@@ -3,6 +3,7 @@
 #include "os/printk.h"
 #include "os/assert.h"
 #include "os/global.h"
+#include "os/stdlib.h"
 #include "os/task.h"
 #include "os/interrupt.h"
 
@@ -16,6 +17,5 @@ void kernel_init()
     show_gdt_list();
     // task_init();
     interrupt_init();
-    int a = 2/0;
     return;
 }
