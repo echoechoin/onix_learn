@@ -28,8 +28,6 @@ void kernel_init(uint32_t magic, uint32_t addr)
     memory_init(magic, addr);
     memory_map_init();
     mapping_init();
-    memory_test();
-    
     sti();
     return;
 }

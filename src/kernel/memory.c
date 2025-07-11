@@ -6,6 +6,7 @@
 #include "os/string.h"
 #include "os/stdlib.h"
 #include "os/printk.h"
+#include "os/bitmap.h"
 
 #define LOGK(fmt, args...) DEBUGK(fmt, ##args)
 
@@ -44,6 +45,10 @@ static uint32_t KERNEL_PAGE_TABLE[] = {
 
 // 2 个页表 * 1024 个页每个页表 * 4K每页  = 8M
 #define KERNEL_MEMORY_SIZE (0x100000 * sizeof(KERNEL_PAGE_TABLE))
+
+#define KERNEL_MAP_BITS 0x4000
+
+bitmap_t kernel_map; // 内核虚拟内存占用状态
 
 typedef struct ards_t
 {
@@ -131,6 +136,11 @@ void memory_map_init()
     }
 
     LOGK("Total pages %d free pages %d\n", total_pages, free_pages);
+
+    // 初始化内核虚拟内存位图，需要 8 位对齐
+    uint32_t length = (IDX(KERNEL_MEMORY_SIZE) - IDX(MEMORY_BASE)) / 8;
+    bitmap_init(&kernel_map, (char *)KERNEL_MAP_BITS, length, IDX(MEMORY_BASE));
+    bitmap_scan(&kernel_map, memory_map_pages); // 将已经使用的内存页置1
 }
 
 // 通过memory_map数组判断某个页是否被占用，分配一页物理内存
@@ -269,33 +279,82 @@ static void flush_tlb(uint32_t vaddr)
                  : "memory");
 }
 
-void memory_test()
+
+// 从位图中扫描 count 个连续的页
+static uint32_t scan_page(bitmap_t *map, uint32_t count)
 {
-    // 将 20 M 0x1400000 内存映射到 64M 0x4000000 的位置
-    // 我们还需要一个页表，0x900000
+    assert(count > 0);
+    int32_t index = bitmap_scan(map, count);
 
-    uint32_t vaddr = 0x4000000; // 线性地址几乎可以是任意的 // pte 为第16个页目录项的第0个页表项
-    uint32_t paddr = 0x1ff000;  // 物理地址必须要确定存在   // 将0x1ff 放到pte里
-    uint32_t table = 0x900000;  // 页表也必须是物理地址     // 将0x900  放到pde里
+    if (index == EOF)
+    {
+        panic("Scan page fail!!!");
+    }
 
-    page_entry_t *pde = get_pde();
-
-    page_entry_t *dentry = &pde[DIDX(vaddr)];            // 获取第16个页目录项
-    entry_init(dentry, IDX(table));         // 将0x900 放到pde里
-
-    page_entry_t *pte = get_pte(vaddr);                  // 获取页表基地址
-    page_entry_t *tentry = &pte[TIDX(vaddr)];            // 获取第0个页表项pte
-
-    entry_init(tentry, IDX(paddr));         // 将0x1ff 放到pte里, 此时访问 0x4000000 就是访问 物理地址 0x1ff000
-
-    char *ptr1 = (char *)(vaddr);
-    char *ptr2 = (char *)(paddr);
-    strcpy(ptr1, "hello world!");
-
-    printk("ptr1 = %p (%s)\n", ptr1, ptr1);
-    printk("ptr2 = %p (%s)\n", ptr2, ptr2);  // 可以看到修改了ptr1, ptr2也会被修改，因为ptr1和ptr2都是映射到同一个物理地址0x1ff000
-
-    // entry_init(tentry, IDX(0x1500000));
-    // flush_tlb(vaddr);
-
+    uint32_t addr = PAGE(index);
+    LOGK("Scan page 0x%p count %d\n", addr, count);
+    return addr;
 }
+
+// 与 scan_page 相对，重置相应的页
+static void reset_page(bitmap_t *map, uint32_t addr, uint32_t count)
+{
+    ASSERT_PAGE(addr);
+    assert(count > 0);
+    uint32_t index = IDX(addr);
+
+    for (size_t i = 0; i < count; i++)
+    {
+        assert(bitmap_test(map, index + i));
+        bitmap_set(map, index + i, 0);
+    }
+}
+
+// 分配 count 个连续的内核页
+uint32_t alloc_kpage(uint32_t count)
+{
+    assert(count > 0);
+    uint32_t vaddr = scan_page(&kernel_map, count);
+    LOGK("ALLOC kernel pages 0x%p count %d\n", vaddr, count);
+    return vaddr;
+}
+
+// 释放 count 个连续的内核页
+void free_kpage(uint32_t vaddr, uint32_t count)
+{
+    ASSERT_PAGE(vaddr);
+    assert(count > 0);
+    reset_page(&kernel_map, vaddr, count);
+    LOGK("FREE  kernel pages 0x%p count %d\n", vaddr, count);
+}
+
+// void memory_test()
+// {
+//     // 将 20 M 0x1400000 内存映射到 64M 0x4000000 的位置
+//     // 我们还需要一个页表，0x900000
+
+//     uint32_t vaddr = 0x4000000; // 线性地址几乎可以是任意的 // pte 为第16个页目录项的第0个页表项
+//     uint32_t paddr = 0x1ff000;  // 物理地址必须要确定存在   // 将0x1ff 放到pte里
+//     uint32_t table = 0x900000;  // 页表也必须是物理地址     // 将0x900  放到pde里
+
+//     page_entry_t *pde = get_pde();
+
+//     page_entry_t *dentry = &pde[DIDX(vaddr)];            // 获取第16个页目录项
+//     entry_init(dentry, IDX(table));         // 将0x900 放到pde里
+
+//     page_entry_t *pte = get_pte(vaddr);                  // 获取页表基地址
+//     page_entry_t *tentry = &pte[TIDX(vaddr)];            // 获取第0个页表项pte
+
+//     entry_init(tentry, IDX(paddr));         // 将0x1ff 放到pte里, 此时访问 0x4000000 就是访问 物理地址 0x1ff000
+
+//     char *ptr1 = (char *)(vaddr);
+//     char *ptr2 = (char *)(paddr);
+//     strcpy(ptr1, "hello world!");
+
+//     printk("ptr1 = %p (%s)\n", ptr1, ptr1);
+//     printk("ptr2 = %p (%s)\n", ptr2, ptr2);  // 可以看到修改了ptr1, ptr2也会被修改，因为ptr1和ptr2都是映射到同一个物理地址0x1ff000
+
+//     // entry_init(tentry, IDX(0x1500000));
+//     // flush_tlb(vaddr);
+
+// }
