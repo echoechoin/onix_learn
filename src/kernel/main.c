@@ -11,6 +11,10 @@
 #include "os/time.h"
 #include "os/memory.h"
 
+extern void memory_test();
+extern void memory_map_init();
+extern void mapping_init();
+
 void kernel_init(uint32_t magic, uint32_t addr)
 {
     console_init();
@@ -22,6 +26,10 @@ void kernel_init(uint32_t magic, uint32_t addr)
     rtc_init();
     time_init();
     memory_init(magic, addr);
+    memory_map_init();
+    mapping_init();
+    memory_test();
+    
     sti();
     return;
 }

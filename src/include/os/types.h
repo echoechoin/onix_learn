@@ -10,6 +10,7 @@
 #define false 0
 
 #define _packed __attribute__((packed)) // 用于定义特殊的结构体
+#define _inline __attribute__((always_inline)) inline
 
 typedef unsigned int size_t;
 
@@ -24,5 +25,6 @@ typedef unsigned int uint32_t;
 typedef unsigned long long uint64_t;
 
 typedef uint32_t time_t;
+typedef uint32_t idx_t;
 
 #endif
