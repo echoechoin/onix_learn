@@ -15,12 +15,13 @@ extern void memory_test();
 extern void memory_map_init();
 extern void mapping_init();
 
+extern void task_init();
+
 void kernel_init(uint32_t magic, uint32_t addr)
 {
     console_init();
     gdt_init();
     show_gdt_list();
-    // task_init();
     interrupt_init();
     clock_init();
     rtc_init();
@@ -28,6 +29,7 @@ void kernel_init(uint32_t magic, uint32_t addr)
     memory_init(magic, addr);
     memory_map_init();
     mapping_init();
+    task_init();
     set_interrupt_state(true);
     return;
 }

@@ -3,6 +3,8 @@
 #include <os/assert.h>
 #include <os/debug.h>
 #include <os/clock.h>
+#include <os/task.h>
+#include <os/os.h>
 
 // 时间片计数器
 uint32_t volatile jiffies = 0;
@@ -14,6 +16,17 @@ void clock_handler(int vector)
     send_eoi(vector);
 
     jiffies++;
+
+    task_t *task = running_task();
+    assert(task->magic == OS_MAGIC);
+
+    task->jiffies = jiffies;
+    task->ticks--;
+    if (!task->ticks)
+    {
+        task->ticks = task->priority;
+        schedule();
+    }
 }
 
 void pit_init()

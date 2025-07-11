@@ -34,9 +34,6 @@ static const char *ards_type_s[] = {
 #define PAGE(idx) ((uint32_t)idx << 12)             // 获取页索引 idx 对应的页开始的位置: 1 -> 0x1000
 #define ASSERT_PAGE(addr) assert((addr & 0xfff) == 0)
 
-// 指定内核页目录索引 (pde[1024] 列表起始地址)，之后会存放到 cr3 寄存器里
-#define KERNEL_PAGE_DIR 0x1000 // 页目录的起始地址，可以存放 1024 个页表
-
 // 内核页表索引, 表示我们使用的页表
 static uint32_t KERNEL_PAGE_TABLE[] = {
     0x2000, // 每个页表的起始地址，可以存放 1024 个页表 pde[0].pte[1024]
