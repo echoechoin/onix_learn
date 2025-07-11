@@ -50,6 +50,15 @@ void set_interrupt_handler(uint32_t irq, handler_t handler);
 // 设置中断掩码
 void set_interrupt_mask(uint32_t irq, bool enable);
 
+// 清除 IF 位，返回设置之前的值
+bool interrupt_disable();
+
+// 获得 IF 位
+bool get_interrupt_state();
+
+// 设置 IF 位
+void set_interrupt_state(bool state);
+
 void interrupt_init();
 
 #endif
