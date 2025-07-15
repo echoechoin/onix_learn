@@ -14,7 +14,8 @@ void idle_thread()
     uint32_t counter = 0;
     while (true)
     {
-        LOGK("idle task.... %d\n", counter++);
+        if (counter % 100 == 0)
+            LOGK("idle task.... %d\n", counter++);
         asm volatile(
             "sti\n" // 开中断
             "hlt\n" // 关闭 CPU，进入暂停状态，等待外中断的到来
@@ -23,21 +24,25 @@ void idle_thread()
     }
 }
 
+extern uint32_t keyboard_read(char *buf, uint32_t count);
+
 void init_thread()
 {
     lock_init(&l);
     set_interrupt_state(true);
 
+    char ch;
     while (true)
     {
-        lock_acquire(&l);
-        lock_acquire(&l);
-        lock_acquire(&l);
-        // LOGK("init task....\n");
-        lock_release(&l);
-        lock_release(&l);
-        lock_release(&l);
-        // test();
+        bool intr = interrupt_disable();
+        keyboard_read(&ch, 1);
+        // LOGK("%c\n", ch);
+        printk("%c", ch);
+
+        set_interrupt_state(intr);
+
+        // LOGK("init task %d....\n", counter++);
+        // sleep(500);
     }
 }
 
@@ -48,9 +53,9 @@ void test_thread()
 
     while (true)
     {
-        lock_acquire(&l);
-        LOGK("test task %d....\n", counter++);
-        lock_release(&l);
+        // lock_acquire(&l);
+        // LOGK("test task %d....\n", counter++);
+        // lock_release(&l);
         sleep(709);
     }
 }

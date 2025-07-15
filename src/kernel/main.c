@@ -18,6 +18,8 @@ extern void mapping_init();
 extern void task_init();
 extern void syscall_init();
 
+extern void keyboard_init();
+
 void test_syscall_0()
 {
     asm volatile("mov $0, %eax\n");
@@ -38,6 +40,7 @@ void kernel_init(uint32_t magic, uint32_t addr)
     mapping_init();
     task_init();
     syscall_init();
+    keyboard_init();
     set_interrupt_state(true);
     test_syscall_0();
     return;

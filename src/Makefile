@@ -83,12 +83,15 @@ $(TARGET)/kernel.bin: \
 	 $(TARGET)/kernel/gate.o \
 	 $(TARGET)/kernel/thread.o \
 	 $(TARGET)/kernel/mutex.o \
+	 $(TARGET)/kernel/keyboard.o \
 	 $(TARGET)/lib/string.o \
 	 $(TARGET)/lib/stdlib.o \
 	 $(TARGET)/lib/vsprintf.o \
 	 $(TARGET)/lib/bitmap.o \
 	 $(TARGET)/lib/syscall.o \
-	 $(TARGET)/lib/list.o
+	 $(TARGET)/lib/list.o \
+	 $(TARGET)/lib/fifo.o \
+
 
 	$(shell mkdir -p $(dir $@))
 	$(LD) -m elf_i386 -static $^ -o $@ -T linker.ld
