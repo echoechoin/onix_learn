@@ -27,6 +27,12 @@ static uint32_t sys_test()
     return 255;
 }
 
+extern void task_yield();
+static void sys_yield()
+{
+    task_yield();
+}
+
 void syscall_init()
 {
     for (size_t i = 0; i < SYSCALL_SIZE; i++)
@@ -35,4 +41,5 @@ void syscall_init()
     }
 
     syscall_table[0] = sys_test;
+    syscall_table[1] = sys_yield;
 }

@@ -1,3 +1,4 @@
+#include "os/syscall.h"
 #include <os/task.h>
 #include <os/printk.h>
 #include <os/debug.h>
@@ -7,6 +8,8 @@
 #include <os/string.h>
 #include <os/bitmap.h>
 #include <os/os.h>
+
+#include <os/syscall.h>
 
 #define PAGE_SIZE 0x1000
 
@@ -67,6 +70,7 @@ task_t *running_task()
 
 void schedule()
 {
+    assert(!get_interrupt_state()); // 不可中断
     task_t *current = running_task();
     task_t *next = task_search(TASK_READY);
 
@@ -86,12 +90,17 @@ void schedule()
     task_switch(next);
 }
 
+void task_yield()
+{
+    schedule();
+}
+
 uint32_t thread_a()
 {
     while (true)
     {
-        // printk("A");
-        schedule();
+        printk("A");
+        yield();
     }
 }
 
@@ -99,8 +108,8 @@ uint32_t thread_b()
 {
     while (true)
     {
-        // printk("B");
-        schedule();
+        printk("B");
+        yield();
     }
 }
 

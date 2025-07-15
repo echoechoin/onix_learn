@@ -85,6 +85,7 @@ $(TARGET)/kernel.bin: \
 	 $(TARGET)/lib/stdlib.o \
 	 $(TARGET)/lib/vsprintf.o \
 	 $(TARGET)/lib/bitmap.o \
+	 $(TARGET)/lib/syscall.o
 
 	$(shell mkdir -p $(dir $@))
 	$(LD) -m elf_i386 -static $^ -o $@ -T linker.ld
