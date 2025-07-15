@@ -11,6 +11,8 @@
 #include "os/time.h"
 #include "os/memory.h"
 
+extern void tss_init();
+
 extern void memory_test();
 extern void memory_map_init();
 extern void mapping_init();
@@ -30,6 +32,7 @@ void kernel_init(uint32_t magic, uint32_t addr)
 {
     console_init();
     gdt_init();
+    tss_init();
     show_gdt_list();
     interrupt_init();
     clock_init();
