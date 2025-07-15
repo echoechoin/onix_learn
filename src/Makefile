@@ -82,6 +82,7 @@ $(TARGET)/kernel.bin: \
 	 $(TARGET)/kernel/time.o \
 	 $(TARGET)/kernel/gate.o \
 	 $(TARGET)/kernel/thread.o \
+	 $(TARGET)/kernel/mutex.o \
 	 $(TARGET)/lib/string.o \
 	 $(TARGET)/lib/stdlib.o \
 	 $(TARGET)/lib/vsprintf.o \

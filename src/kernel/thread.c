@@ -2,6 +2,9 @@
 #include <os/syscall.h>
 #include <os/debug.h>
 #include <os/syscall.h>
+#include <os/mutex.h>
+
+mutex_t mutex;
 
 #define LOGK(fmt, args...) DEBUGK(fmt, ##args)
 
@@ -22,11 +25,14 @@ void idle_thread()
 
 void init_thread()
 {
+    mutex_init(&mutex);
     set_interrupt_state(true);
 
     while (true)
     {
+        mutex_lock(&mutex);
         // LOGK("init task....\n");
+        mutex_unlock(&mutex);
         // test();
     }
 }
@@ -38,7 +44,9 @@ void test_thread()
 
     while (true)
     {
+        mutex_lock(&mutex);
         LOGK("test task %d....\n", counter++);
+        mutex_unlock(&mutex);
         sleep(709);
     }
 }
