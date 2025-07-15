@@ -90,7 +90,7 @@ uint32_t thread_a()
 {
     while (true)
     {
-        printk("A");
+        // printk("A");
         schedule();
     }
 }
@@ -99,7 +99,7 @@ uint32_t thread_b()
 {
     while (true)
     {
-        printk("B");
+        // printk("B");
         schedule();
     }
 }

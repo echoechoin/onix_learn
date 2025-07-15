@@ -12,6 +12,7 @@ pointer_t idt_ptr;
 handler_t handler_table[IDT_SIZE];
 extern void interrupt_handler(int);
 extern handler_t handler_entry_table[ENTRY_SIZE];
+extern void syscall_handler();
 
 #define PIC_M_CTRL 0x20 // 主片的控制端口
 #define PIC_M_DATA 0x21 // 主片的数据端口
@@ -150,6 +151,18 @@ void idt_init()
     // 外中断
     for (size_t i = 20; i < ENTRY_SIZE; i++)
         handler_table[i] = default_handler;
+
+    // 系统调用
+    // 初始化系统调用 用户态可以使用int 0x80
+    gate_t *gate = &idt[0x80];
+    gate->offset0 = (uint32_t)syscall_handler & 0xffff;
+    gate->offset1 = ((uint32_t)syscall_handler >> 16) & 0xffff;
+    gate->selector = 1 << 3; // 代码段
+    gate->reserved = 0;      // 保留不用
+    gate->type = 0b1110;     // 中断门
+    gate->segment = 0;       // 系统段
+    gate->DPL = 3;           // 用户态
+    gate->present = 1;       // 有效
 
     idt_ptr.base = (uint32_t)idt;
     idt_ptr.limit = sizeof(idt) - 1;
