@@ -1,7 +1,8 @@
-#ifndef ONIX_TASK_H
-#define ONIX_TASK_H
+#ifndef OS_TASK_H
+#define OS_TASK_H
 
 #include <os/types.h>
+#include <os/list.h>
 
 #define KERNEL_USER 0
 #define NORMAL_USER 1
@@ -24,6 +25,7 @@ typedef uint32_t target_t();
 typedef struct task_t
 {
     uint32_t *stack;              // 内核栈
+    list_node_t node;         // 任务阻塞节点
     task_state_t state;           // 任务状态
     uint32_t priority;            // 任务优先级
     uint32_t ticks;               // 剩余时间片
@@ -47,5 +49,8 @@ typedef struct task_frame_t
 task_t *running_task();
 void schedule();
 void task_yield();
+
+void task_block(task_t *task, list_t *blist, task_state_t state);
+void task_unblock(task_t *task);
 
 #endif

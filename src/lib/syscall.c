@@ -6,7 +6,7 @@ static _inline uint32_t _syscall0(uint32_t nr)
     uint32_t ret;
     asm volatile(
         "int $0x80\n"
-        : "a="(ret)
+        : "=a"(ret)
         : "a"(nr));
     return ret;
 }

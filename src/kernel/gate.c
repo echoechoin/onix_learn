@@ -21,9 +21,26 @@ static void sys_default()
     panic("syscall not implemented!!!");
 }
 
+#include <os/task.h>
+task_t *task = NULL;
+
 static uint32_t sys_test()
 {
-    LOGK("syscall test...\n");
+    // LOGK("syscall test...\n");
+
+    if (!task)
+    {
+        task = running_task();
+        // LOGK("block task 0x%p \n", task);
+        task_block(task, NULL, TASK_BLOCKED);
+    }
+    else
+    {
+        task_unblock(task);
+        // LOGK("unblock task 0x%p \n", task);
+        task = NULL;
+    }
+
     return 255;
 }
 
