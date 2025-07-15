@@ -20,7 +20,7 @@ typedef enum task_state_t
     TASK_DIED,     // 死亡
 } task_state_t;
 
-typedef uint32_t target_t();
+typedef void(*target_t)();
 
 typedef struct task_t
 {
