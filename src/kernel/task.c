@@ -9,18 +9,23 @@
 #include <os/bitmap.h>
 #include <os/os.h>
 #include <os/list.h>
+#include <os/clock.h>
 
 #include <os/syscall.h>
 
 #define PAGE_SIZE 0x1000
 
+extern uint32_t volatile jiffies;
+extern uint32_t jiffy;
 extern bitmap_t kernel_map;
 extern void task_switch(task_t *next);
 
 #define NR_TASKS 64
 static task_t *task_table[NR_TASKS]; // 任务表
-static list_t block_list;   // 任务默认阻塞链表
+static list_t block_list;            // 任务默认阻塞链表
+static list_t sleep_list;            // 任务睡眠链表
 static task_t *idle_task;
+
 
 // 从 task_table 里获得一个空闲的任务
 static task_t *get_free_task()
@@ -138,8 +143,67 @@ void task_unblock(task_t *task)
     task->state = TASK_READY;
 }
 
-extern void idle_thread();
-extern void init_thread();
+
+void task_sleep(uint32_t ms)
+{
+    assert(!get_interrupt_state()); // 不可中断
+
+    uint32_t ticks = ms / jiffy;        // 需要睡眠的时间片
+    ticks = ticks > 0 ? ticks : 1; // 至少休眠一个时间片
+
+    // 记录目标全局时间片，在那个时刻需要唤醒任务
+    task_t *current = running_task();
+    current->ticks = jiffies + ticks;
+
+    // 从睡眠链表找到第一个比当前任务唤醒时间点更晚的任务，进行插入排序
+    list_t *list = &sleep_list;
+    list_node_t *anchor = &list->tail;
+
+    for (list_node_t *ptr = list->head.next; ptr != &list->tail; ptr = ptr->next)
+    {
+        task_t *task = element_entry(task_t, node, ptr);
+
+        if (task->ticks > current->ticks)
+        {
+            anchor = ptr;
+            break;
+        }
+    }
+
+    assert(current->node.next == NULL);
+    assert(current->node.prev == NULL);
+
+    // 插入链表
+    list_insert_before(anchor, &current->node);
+
+    // 阻塞状态是睡眠
+    current->state = TASK_SLEEPING;
+
+    // 调度执行其他任务
+    schedule();
+}
+
+void task_wakeup()
+{
+    assert(!get_interrupt_state()); // 不可中断
+
+    // 从睡眠链表中找到 ticks 小于等于 jiffies 的任务，恢复执行
+    list_t *list = &sleep_list;
+    for (list_node_t *ptr = list->head.next; ptr != &list->tail;)
+    {
+        task_t *task = element_entry(task_t, node, ptr);
+        if (task->ticks > jiffies)
+        {
+            break;
+        }
+
+        // unblock 会将指针清空
+        ptr = ptr->next;
+
+        task->ticks = 0;
+        task_unblock(task);
+    }
+}
 
 static task_t *task_create(target_t target, const char *name, uint32_t priority, uint32_t uid)
 {
@@ -180,11 +244,17 @@ static void task_setup()
     memset(task_table, 0, sizeof(task_table));
 }
 
+extern void idle_thread();
+extern void init_thread();
+extern void test_thread();
+
 void task_init()
 {
     list_init(&block_list);
+    list_init(&sleep_list);
 
     task_setup();
     idle_task = task_create(idle_thread, "idle", 1, KERNEL_USER);
     task_create(init_thread, "init", 5, NORMAL_USER);
+    task_create(test_thread, "test", 5, KERNEL_USER);
 }

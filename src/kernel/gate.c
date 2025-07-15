@@ -1,3 +1,4 @@
+#include "os/syscall.h"
 #include <os/interrupt.h>
 #include <os/assert.h>
 #include <os/debug.h>
@@ -44,12 +45,6 @@ static uint32_t sys_test()
     return 255;
 }
 
-extern void task_yield();
-static void sys_yield()
-{
-    task_yield();
-}
-
 void syscall_init()
 {
     for (size_t i = 0; i < SYSCALL_SIZE; i++)
@@ -57,6 +52,7 @@ void syscall_init()
         syscall_table[i] = sys_default;
     }
 
-    syscall_table[0] = sys_test;
-    syscall_table[1] = sys_yield;
+    syscall_table[SYS_NR_TEST] = sys_test;
+    syscall_table[SYS_NR_YIELD] = task_yield;
+    syscall_table[SYS_NR_SLEEP] = task_sleep;
 }

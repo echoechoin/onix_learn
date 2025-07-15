@@ -53,4 +53,7 @@ void task_yield();
 void task_block(task_t *task, list_t *blist, task_state_t state);
 void task_unblock(task_t *task);
 
+void task_sleep(uint32_t ms);
+void task_wakeup();
+
 #endif

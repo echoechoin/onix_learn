@@ -1,6 +1,7 @@
 #include <os/interrupt.h>
 #include <os/syscall.h>
 #include <os/debug.h>
+#include <os/syscall.h>
 
 #define LOGK(fmt, args...) DEBUGK(fmt, ##args)
 
@@ -25,7 +26,19 @@ void init_thread()
 
     while (true)
     {
-        LOGK("init task....\n");
+        // LOGK("init task....\n");
         // test();
+    }
+}
+
+void test_thread()
+{
+    set_interrupt_state(true);
+    uint32_t counter = 0;
+
+    while (true)
+    {
+        LOGK("test task %d....\n", counter++);
+        sleep(709);
     }
 }
