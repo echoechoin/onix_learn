@@ -4,7 +4,7 @@
 #include <os/syscall.h>
 #include <os/mutex.h>
 
-mutex_t mutex;
+lock_t l;
 
 #define LOGK(fmt, args...) DEBUGK(fmt, ##args)
 
@@ -25,14 +25,18 @@ void idle_thread()
 
 void init_thread()
 {
-    mutex_init(&mutex);
+    lock_init(&l);
     set_interrupt_state(true);
 
     while (true)
     {
-        mutex_lock(&mutex);
+        lock_acquire(&l);
+        lock_acquire(&l);
+        lock_acquire(&l);
         // LOGK("init task....\n");
-        mutex_unlock(&mutex);
+        lock_release(&l);
+        lock_release(&l);
+        lock_release(&l);
         // test();
     }
 }
@@ -44,9 +48,9 @@ void test_thread()
 
     while (true)
     {
-        mutex_lock(&mutex);
+        lock_acquire(&l);
         LOGK("test task %d....\n", counter++);
-        mutex_unlock(&mutex);
+        lock_release(&l);
         sleep(709);
     }
 }
