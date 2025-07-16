@@ -155,12 +155,13 @@ static void command_del()
     *(uint16_t *)pos = erase;
 }
 
-void console_write(char *buf, uint32_t count)
+int32_t console_write(char *buf, uint32_t count)
 {
     bool intr = interrupt_disable(); // 禁止中断
     char ch;
     char *ptr = (char *)pos;
-    while (count--)
+    int32_t nr = 0;
+    while (nr++ < count)
     {
         ch = *buf++;
         switch (ch)
@@ -212,6 +213,7 @@ void console_write(char *buf, uint32_t count)
 
     // 恢复中断
     set_interrupt_state(intr);
+    return nr;
 }
 
 void console_init()

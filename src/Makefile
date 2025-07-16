@@ -21,7 +21,7 @@ endif
 
 ENTRYPOINT:=0x10000
 
-CFLAGS:= -m32 # 32 位的程序
+CFLAGS:= -m32           # 32 位的程序
 CFLAGS+= -fno-builtin	# 不需要 gcc 内置函数
 CFLAGS+= -nostdinc		# 不需要标准头文件
 CFLAGS+= -fno-pic		# 不需要位置无关的代码  position independent code
@@ -38,7 +38,7 @@ BOOTLOADER = bootloader
 KERNEL = kernel
 LIB = lib
 
-.PHONY: all clean
+.PHONY: all clean run debug gdb
 
 all: ${TARGET}/image.bin
 
@@ -91,6 +91,7 @@ $(TARGET)/kernel.bin: \
 	 $(TARGET)/lib/syscall.o \
 	 $(TARGET)/lib/list.o \
 	 $(TARGET)/lib/fifo.o \
+	 $(TARGET)/lib/printf.o \
 
 
 	$(shell mkdir -p $(dir $@))

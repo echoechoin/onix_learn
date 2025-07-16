@@ -4,6 +4,7 @@
 #include <os/syscall.h>
 #include <os/mutex.h>
 #include <os/task.h>
+#include <os/stdio.h>
 
 lock_t l;
 
@@ -36,6 +37,7 @@ static void real_init_thread()
     {
         sleep(100);
         // printk("hello world!\n"); // 触发异常，因为无法再printk中的中断使能指令
+        printf("hello world!\n");
     }
 }
 

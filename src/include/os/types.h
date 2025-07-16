@@ -27,4 +27,12 @@ typedef unsigned long long uint64_t;
 typedef uint32_t time_t;
 typedef uint32_t idx_t;
 
+typedef int32_t fd_t;
+typedef enum std_fd_t
+{
+    stdin,
+    stdout,
+    stderr,
+} std_fd_t;
+
 #endif
