@@ -84,6 +84,7 @@ $(TARGET)/kernel.bin: \
 	 $(TARGET)/kernel/thread.o \
 	 $(TARGET)/kernel/mutex.o \
 	 $(TARGET)/kernel/keyboard.o \
+	 $(TARGET)/kernel/arena.o \
 	 $(TARGET)/lib/string.o \
 	 $(TARGET)/lib/stdlib.o \
 	 $(TARGET)/lib/vsprintf.o \

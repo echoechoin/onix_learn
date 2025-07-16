@@ -5,6 +5,7 @@
 #include <os/mutex.h>
 #include <os/task.h>
 #include <os/stdio.h>
+#include <os/arena.h>
 
 lock_t l;
 
@@ -37,7 +38,7 @@ static void real_init_thread()
     {
         sleep(100);
         // printk("hello world!\n"); // 触发异常，因为无法再printk中的中断使能指令
-        printf("hello world!\n");
+        // printf("hello world!\n");
     }
 }
 
@@ -58,6 +59,18 @@ void test_thread()
         // lock_acquire(&l);
         // LOGK("test task %d....\n", counter++);
         // lock_release(&l);
-        sleep(709);
+        void *ptr = kmalloc(1200);
+        LOGK("kmalloc 0x%p....\n", ptr);
+        kfree(ptr);
+
+        ptr = kmalloc(1024);
+        LOGK("kmalloc 0x%p....\n", ptr);
+        kfree(ptr);
+
+        ptr = kmalloc(54);
+        LOGK("kmalloc 0x%p....\n", ptr);
+        kfree(ptr);
+
+        sleep(1000);
     }
 }
