@@ -10,7 +10,7 @@
 #include <os/os.h>
 #include <os/list.h>
 #include <os/clock.h>
-
+#include <os/global.h>
 #include <os/syscall.h>
 
 #define PAGE_SIZE 0x1000
@@ -19,6 +19,7 @@ extern uint32_t volatile jiffies;
 extern uint32_t jiffy;
 extern bitmap_t kernel_map;
 extern void task_switch(task_t *next);
+extern tss_t tss;
 
 #define NR_TASKS 64
 static task_t *task_table[NR_TASKS]; // 任务表
@@ -78,6 +79,17 @@ task_t *running_task()
         "andl $0xfffff000, %eax\n");
 }
 
+// 激活任务：主要是在切换到用户态前保存内核栈指针
+void task_activate(task_t *task)
+{
+    assert(task->magic == OS_MAGIC);
+
+    if (task->uid != KERNEL_USER)
+    {
+        tss.esp0 = (uint32_t)task + PAGE_SIZE;
+    }
+}
+
 void schedule()
 {
     assert(!get_interrupt_state()); // 不可中断
@@ -97,6 +109,7 @@ void schedule()
     if (next == current)
         return;
 
+    task_activate(next);
     task_switch(next);
 }
 
@@ -205,6 +218,22 @@ void task_wakeup()
     }
 }
 
+
+/**
+ * 一个任务使用一页内存（4K）：
+ *
+ * +------------+ 4K
+ * | task_frame |
+ * +------------+ <- eip
+ * |            |
+ * |     ...    |
+ * |            |
+ * +------------+
+ * |    task    | 
+ * +------------- 0
+ */
+
+
 static task_t *task_create(target_t target, const char *name, uint32_t priority, uint32_t uid)
 {
     task_t *task = get_free_task();
@@ -213,7 +242,8 @@ static task_t *task_create(target_t target, const char *name, uint32_t priority,
 
     stack -= sizeof(task_frame_t);
     task_frame_t *frame = (task_frame_t *)stack;
-    frame->ebx = 0x11111111;
+    // 构造一个栈帧，task_switch的时候会被恢复
+    frame->ebx = 0x11111111; // 因为刚进入task的时候这些寄存器的值是不确定的，所以随便填个值用于调试
     frame->esi = 0x22222222;
     frame->edi = 0x33333333;
     frame->ebp = 0x44444444;
@@ -242,6 +272,66 @@ static void task_setup()
     task->ticks = 1;
 
     memset(task_table, 0, sizeof(task_table));
+}
+
+
+/**
+ * 一个任务使用一页内存（4K）：
+ *
+ * +------------+ 4K
+ * | intr_frame |
+ * +------------+
+ * | task_frame |
+ * +------------+ <- eip
+ * |            |
+ * |     ...    |
+ * |            |
+ * +------------+
+ * |    task    | 
+ * +------------- 0
+ */
+
+// 调用该函数的地方不能有任何局部变量，防止被iframe覆盖
+// 调用前栈顶需要准备足够的空间存储iframe
+void task_to_user_mode(target_t target)
+{
+    task_t *task = running_task();
+
+    uint32_t addr = (uint32_t)task + PAGE_SIZE;
+
+    addr -= sizeof(intr_frame_t);
+    intr_frame_t *iframe = (intr_frame_t *)(addr);
+    // 构造一个中断栈帧，用户态中断后会被恢复
+
+    iframe->vector = 0x20;
+    iframe->edi = 1;
+    iframe->esi = 2;
+    iframe->ebp = 3;
+    iframe->esp_dummy = 4;
+    iframe->ebx = 5;
+    iframe->edx = 6;
+    iframe->ecx = 7;
+    iframe->eax = 8;
+
+    // 修改为用户态的段选择子，不过之前映射的时候用户态的段选择子和内核态映射的是相同的内存。
+    iframe->gs = 0;
+    iframe->ds = USER_DATA_SELECTOR;
+    iframe->es = USER_DATA_SELECTOR;
+    iframe->fs = USER_DATA_SELECTOR;
+    iframe->ss = USER_DATA_SELECTOR;
+    iframe->cs = USER_CODE_SELECTOR;
+
+    iframe->error = OS_MAGIC;
+
+    uint32_t stack3 = alloc_kpage(1); // todo replace to user stack
+
+    iframe->eip = (uint32_t)target;
+    iframe->eflags = (0 << 12 | 0b10 | 1 << 9);
+    iframe->esp = stack3 + PAGE_SIZE;
+
+    asm volatile(
+        "movl %0, %%esp\n"
+        "jmp interrupt_exit\n" ::"m"(iframe));
 }
 
 extern void idle_thread();

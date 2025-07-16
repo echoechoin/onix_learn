@@ -8,16 +8,16 @@ section .text
 ; 定义一个宏函数，需要两个参数 中断号码 是否为终止中断
 %macro INTERRUPT_HANDLER 2
 interrupt_handler_%1:
-%ifn %2
+%ifn %2; 第二个参数 == 0 表示该中断没有错误码，则需要压入一个占位值
     push 0x20222202
-%endif
+%endif; 第二个参数 != 0 表示该中断有错误码，CPU会将该错误码压入栈中
     push %1; 压入中断向量，跳转到中断入口
     jmp interrupt_entry
 %endmacro
 
 interrupt_entry:
 
-    ; 保存上文寄存器信息
+    ; 保存上文寄存器信息到intr_frame
     push ds
     push es
     push fs
@@ -39,7 +39,7 @@ interrupt_exit:
     ; 对应 push eax，调用结束恢复栈
     add esp, 4
 
-    ; 恢复下文寄存器信息
+    ; 从intr_frame恢复下文寄存器信息
     popa
     pop gs
     pop fs

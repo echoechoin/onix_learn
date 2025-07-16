@@ -37,6 +37,7 @@ cdecl_call_print:
     ; 设置栈帧
     ; 高地址
     ; +-----------------+
+    ; + eip             |
     ; | arg n           |
     ; | arg n-1         |
     ; | ...             |
@@ -77,4 +78,4 @@ cdecl_call_print:
     mov eax, 0            ; 设置返回值为 0
     mov esp, ebp          ; 恢复 ESP，释放局部变量
     pop ebp               ; 恢复调用者的 EBP
-    ret                   ; 返回
+    ret                   ; 返回 恢复eip指针

@@ -39,7 +39,9 @@ typedef struct descriptor /* 共 8 个字节 */
 // 段选择子
 typedef struct selector_t
 {
+    // 表示请求的特权级别（0 表示内核态，3 表示用户态）。
     uint8_t RPL : 2;
+    //TI（Table Indicator）：0 表示 GDT，1 表示 LDT。
     uint8_t TI : 1;
     uint16_t index : 13;
 } selector_t;
@@ -51,6 +53,9 @@ typedef struct pointer_t
     uint32_t base;  // 全描述符基地址
 } _packed pointer_t;
 
+
+// 从用户态切换到内核态的时候会将ss0和esp0设置为内核栈的位置
+// 因此切换到用户态前需要设置内核态的ss0和esp0
 typedef struct tss_t
 {
     uint32_t backlink; // 前一个任务的链接，保存了前一个任状态段的段选择子

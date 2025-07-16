@@ -3,6 +3,7 @@
 #include <os/debug.h>
 #include <os/syscall.h>
 #include <os/mutex.h>
+#include <os/task.h>
 
 lock_t l;
 
@@ -14,8 +15,8 @@ void idle_thread()
     uint32_t counter = 0;
     while (true)
     {
-        if (counter % 100 == 0)
-            LOGK("idle task.... %d\n", counter++);
+        if (++counter % 100 == 0)
+            LOGK("idle task.... %d\n", counter);
         asm volatile(
             "sti\n" // 开中断
             "hlt\n" // 关闭 CPU，进入暂停状态，等待外中断的到来
@@ -26,25 +27,24 @@ void idle_thread()
 
 extern uint32_t keyboard_read(char *buf, uint32_t count);
 
-void init_thread()
+static void real_init_thread()
 {
-    lock_init(&l);
-    set_interrupt_state(true);
+    uint32_t counter = 0;
 
     char ch;
     while (true)
     {
-        bool intr = interrupt_disable();
-        keyboard_read(&ch, 1);
-        // LOGK("%c\n", ch);
-        printk("%c", ch);
-
-        set_interrupt_state(intr);
-
-        // LOGK("init task %d....\n", counter++);
-        // sleep(500);
+        sleep(100);
+        // printk("hello world!\n"); // 触发异常，因为无法再printk中的中断使能指令
     }
 }
+
+void init_thread()
+{
+    char temp[100]; // 为栈顶有足够的空间存储intr_frame
+    task_to_user_mode(real_init_thread);
+}
+
 
 void test_thread()
 {
