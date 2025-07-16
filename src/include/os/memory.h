@@ -3,6 +3,9 @@
 
 #include "os/types.h"
 
+// 内核占用的内存大小 8M
+#define KERNEL_MEMORY_SIZE 0x800000
+
 #define PAGE_SIZE 0x1000     // 一页的大小 4K
 #define MEMORY_BASE 0x100000 // 1M，可用内存开始的位置
 

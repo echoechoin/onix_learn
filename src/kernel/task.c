@@ -12,6 +12,7 @@
 #include <os/clock.h>
 #include <os/global.h>
 #include <os/syscall.h>
+#include <os/arena.h>
 
 #define PAGE_SIZE 0x1000
 
@@ -296,6 +297,11 @@ static void task_setup()
 void task_to_user_mode(target_t target)
 {
     task_t *task = running_task();
+
+    task->vmap = kmalloc(sizeof(bitmap_t)); // todo kfree
+    void *buf = (void *)alloc_kpage(1);     // todo free_kpage
+    // 只能使用8M的虚拟地址
+    bitmap_init(task->vmap, buf, PAGE_SIZE, KERNEL_MEMORY_SIZE / PAGE_SIZE);
 
     uint32_t addr = (uint32_t)task + PAGE_SIZE;
 

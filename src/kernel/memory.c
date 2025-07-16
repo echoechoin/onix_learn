@@ -7,6 +7,7 @@
 #include "os/stdlib.h"
 #include "os/printk.h"
 #include "os/bitmap.h"
+#include "os/task.h"
 
 #define LOGK(fmt, args...) DEBUGK(fmt, ##args)
 
@@ -34,14 +35,14 @@ static const char *ards_type_s[] = {
 #define PAGE(idx) ((uint32_t)idx << 12)             // 获取页索引 idx 对应的页开始的位置: 1 -> 0x1000
 #define ASSERT_PAGE(addr) assert((addr & 0xfff) == 0)
 
+// 1111_1111_1100_0000_0000_0000_0000_0000
+#define PDE_MASK 0xFFC00000
+
 // 内核页表索引, 表示我们使用的页表
 static uint32_t KERNEL_PAGE_TABLE[] = {
     0x2000, // 每个页表的起始地址，可以存放 1024 个页表 pde[0].pte[1024]
     0x3000, // pde[1].pte[1024]
 };
-
-// 2 个页表 * 1024 个页每个页表 * 4K每页  = 8M
-#define KERNEL_MEMORY_SIZE (0x100000 * sizeof(KERNEL_PAGE_TABLE))
 
 #define KERNEL_MAP_BITS 0x4000
 
@@ -264,9 +265,27 @@ static page_entry_t *get_pde()
     return (page_entry_t *)(0xfffff000);
 }
 
-static page_entry_t *get_pte(uint32_t vaddr)
+// 获取虚拟地址 vaddr 对应的页表
+// 如果页表不存在就创建一个页表
+static page_entry_t *get_pte(uint32_t vaddr, bool create)
 {
-    return (page_entry_t *)(0xffc00000 | (DIDX(vaddr) << 12));
+    page_entry_t *pde = get_pde();
+    uint32_t idx = DIDX(vaddr);
+    page_entry_t *entry = &pde[idx];
+
+    assert(create || (!create && entry->present));
+
+    page_entry_t *table = (page_entry_t *)(PDE_MASK | (idx << 12));
+
+    if (!entry->present)
+    {
+        LOGK("Get and create page table entry for 0x%p\n", vaddr);
+        uint32_t page = get_page();
+        entry_init(entry, IDX(page));
+        memset(table, 0, PAGE_SIZE);
+    }
+
+    return table;
 }
 
 // 刷新虚拟地址 vaddr 的 块表 TLB
@@ -324,6 +343,70 @@ void free_kpage(uint32_t vaddr, uint32_t count)
     reset_page(&kernel_map, vaddr, count);
     LOGK("FREE  kernel pages 0x%p count %d\n", vaddr, count);
 }
+
+
+// 将 vaddr 映射物理内存
+void link_page(uint32_t vaddr)
+{
+    ASSERT_PAGE(vaddr);
+
+    page_entry_t *pte = get_pte(vaddr, true);
+    page_entry_t *entry = &pte[TIDX(vaddr)];
+
+    task_t *task = running_task();
+    bitmap_t *map = task->vmap;
+    uint32_t index = IDX(vaddr);
+
+    // 如果页面已存在，则直接返回
+    if (entry->present)
+    {
+        assert(bitmap_test(map, index));
+        return;
+    }
+
+    assert(!bitmap_test(map, index));
+    bitmap_set(map, index, true);
+
+    uint32_t paddr = get_page();
+    entry_init(entry, IDX(paddr));
+    flush_tlb(vaddr);
+
+    LOGK("LINK from 0x%p to 0x%p\n", vaddr, paddr);
+}
+
+// 去掉 vaddr 对应的物理内存映射
+void unlink_page(uint32_t vaddr)
+{
+    ASSERT_PAGE(vaddr);
+
+    page_entry_t *pte = get_pte(vaddr, true);
+    page_entry_t *entry = &pte[TIDX(vaddr)];
+
+    task_t *task = running_task();
+    bitmap_t *map = task->vmap;
+    uint32_t index = IDX(vaddr);
+
+    if (!entry->present)
+    {
+        assert(!bitmap_test(map, index));
+        return;
+    }
+
+    assert(entry->present && bitmap_test(map, index));
+
+    entry->present = false;
+    bitmap_set(map, index, false);
+
+    uint32_t paddr = PAGE(entry->index);
+
+    DEBUGK("UNLINK from 0x%p to 0x%p\n", vaddr, paddr);
+    if (memory_map[entry->index] == 1)
+    {
+        put_page(paddr);
+    }
+    flush_tlb(vaddr);
+}
+
 
 // void memory_test()
 // {
