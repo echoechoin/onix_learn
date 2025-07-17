@@ -3,8 +3,17 @@
 
 #include "os/types.h"
 
-// 内核占用的内存大小 8M
+// 内核占用的内存大小 8M (整个操作系统占用的内存大小)
 #define KERNEL_MEMORY_SIZE 0x800000
+
+// 用户栈顶地址 128M
+#define USER_STACK_TOP 0x8000000
+
+// 用户栈最大 2M
+#define USER_STACK_SIZE 0x200000
+
+// 用户栈底地址 128M - 2M (虚拟地址)
+#define USER_STACK_BOTTOM (USER_STACK_TOP - USER_STACK_SIZE)
 
 #define PAGE_SIZE 0x1000     // 一页的大小 4K
 #define MEMORY_BASE 0x100000 // 1M，可用内存开始的位置
@@ -27,6 +36,9 @@ typedef struct page_entry_t
     uint32_t index : 20;  // 页索引
 } _packed page_entry_t;
 
+// 得到 cr2 寄存器; 存储了造成缺页异常的虚拟地址
+uint32_t get_cr2();
+
 uint32_t get_cr3();
 void set_cr3(uint32_t pde);
 
@@ -34,5 +46,7 @@ uint32_t alloc_kpage(uint32_t count);
 void free_kpage(uint32_t vaddr, uint32_t count);
 
 void memory_init(uint32_t magic, uint32_t addr);
+
+page_entry_t *copy_pde();
 
 #endif

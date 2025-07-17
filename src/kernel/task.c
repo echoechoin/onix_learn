@@ -80,14 +80,22 @@ task_t *running_task()
         "andl $0xfffff000, %eax\n");
 }
 
-// 激活任务：主要是在切换到用户态前保存内核栈指针
+// 激活任务
 void task_activate(task_t *task)
 {
     assert(task->magic == OS_MAGIC);
 
+    // 切换到用户态前保存内核栈指针
     if (task->uid != KERNEL_USER)
     {
         tss.esp0 = (uint32_t)task + PAGE_SIZE;
+    }
+
+    // 修改任务的页目录
+    if (task->pde != get_cr3())
+    {
+        set_cr3(task->pde);
+        // BMB;
     }
 }
 
@@ -298,10 +306,15 @@ void task_to_user_mode(target_t target)
 {
     task_t *task = running_task();
 
+    // 创建用户进程虚拟位图
     task->vmap = kmalloc(sizeof(bitmap_t)); // todo kfree
     void *buf = (void *)alloc_kpage(1);     // todo free_kpage
     // 只能使用8M的虚拟地址
     bitmap_init(task->vmap, buf, PAGE_SIZE, KERNEL_MEMORY_SIZE / PAGE_SIZE);
+
+    // 创建用户进程页表；暂时和内核态的页表一样
+    task->pde = (uint32_t)copy_pde();
+    set_cr3(task->pde);
 
     uint32_t addr = (uint32_t)task + PAGE_SIZE;
 
@@ -329,11 +342,11 @@ void task_to_user_mode(target_t target)
 
     iframe->error = OS_MAGIC;
 
-    uint32_t stack3 = alloc_kpage(1); // todo replace to user stack
-
     iframe->eip = (uint32_t)target;
     iframe->eflags = (0 << 12 | 0b10 | 1 << 9);
-    iframe->esp = stack3 + PAGE_SIZE;
+
+    // 设置用户栈
+    iframe->esp = USER_STACK_TOP;
 
     asm volatile(
         "movl %0, %%esp\n"

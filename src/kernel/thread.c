@@ -29,6 +29,12 @@ void idle_thread()
 
 extern uint32_t keyboard_read(char *buf, uint32_t count);
 
+void test_recursion()
+{
+    char tmp[0x400];
+    test_recursion(); 
+}
+
 static void real_init_thread()
 {
     uint32_t counter = 0;
@@ -36,7 +42,7 @@ static void real_init_thread()
     char ch;
     while (true)
     {
-        sleep(100);
+        test_recursion(); // 最终会导致缺页异常
         // printk("hello world!\n"); // 触发异常，因为无法再printk中的中断使能指令
         // printf("hello world!\n");
     }
@@ -59,17 +65,17 @@ void test_thread()
         // lock_acquire(&l);
         // LOGK("test task %d....\n", counter++);
         // lock_release(&l);
-        void *ptr = kmalloc(1200);
-        LOGK("kmalloc 0x%p....\n", ptr);
-        kfree(ptr);
+        // void *ptr = kmalloc(1200);
+        // LOGK("kmalloc 0x%p....\n", ptr);
+        // kfree(ptr);
 
-        ptr = kmalloc(1024);
-        LOGK("kmalloc 0x%p....\n", ptr);
-        kfree(ptr);
+        // ptr = kmalloc(1024);
+        // LOGK("kmalloc 0x%p....\n", ptr);
+        // kfree(ptr);
 
-        ptr = kmalloc(54);
-        LOGK("kmalloc 0x%p....\n", ptr);
-        kfree(ptr);
+        // ptr = kmalloc(54);
+        // LOGK("kmalloc 0x%p....\n", ptr);
+        // kfree(ptr);
 
         sleep(1000);
     }

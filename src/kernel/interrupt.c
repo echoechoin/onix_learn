@@ -13,6 +13,7 @@ handler_t handler_table[IDT_SIZE];
 extern void interrupt_handler(int);
 extern handler_t handler_entry_table[ENTRY_SIZE];
 extern void syscall_handler();
+extern void page_fault();
 
 #define PIC_M_CTRL 0x20 // 主片的控制端口
 #define PIC_M_DATA 0x21 // 主片的数据端口
@@ -147,6 +148,9 @@ void idt_init()
     // 异常中断
     for (size_t i = 0; i < 0x20; i++)
         handler_table[i] = exception_handler;
+
+    // 缺页异常
+    handler_table[0xe] = page_fault;
 
     // 外中断
     for (size_t i = 20; i < ENTRY_SIZE; i++)

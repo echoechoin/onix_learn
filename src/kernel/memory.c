@@ -186,6 +186,12 @@ static void put_page(uint32_t addr)
     LOGK("PUT page 0x%p\n", addr);
 }
 
+uint32_t inline get_cr2()
+{
+    // 直接将 mov eax, cr2，返回值在 eax 中
+    asm volatile("movl %cr2, %eax\n");
+}
+
 // 得到 cr3 寄存器
 uint32_t inline get_cr3()
 {
@@ -407,6 +413,65 @@ void unlink_page(uint32_t vaddr)
     flush_tlb(vaddr);
 }
 
+// 拷贝当前页目录
+page_entry_t *copy_pde()
+{
+    task_t *task = running_task();
+    page_entry_t *pde = (page_entry_t *)alloc_kpage(1); // todo free
+    memcpy(pde, (void *)task->pde, PAGE_SIZE);
+
+    // 将最后一个页表指向页目录自己，方便修改
+    page_entry_t *entry = &pde[1023];
+    entry_init(entry, IDX(pde));
+
+    return pde;
+}
+
+// 错误码，只使用了:
+//  P 访问了不存在的页
+//  W/R 读还是写
+//  U/S 是内核态还是用户态引发的错误
+typedef struct page_error_code_t
+{
+    uint8_t present : 1;
+    uint8_t write : 1;
+    uint8_t user : 1;
+    // 后面的暂时没有使用
+    uint8_t reserved0 : 1;
+    uint8_t fetch : 1;
+    uint8_t protection : 1;
+    uint8_t shadow : 1;
+    uint16_t reserved1 : 8;
+    uint8_t sgx : 1;
+    uint16_t reserved2;
+} _packed page_error_code_t;
+
+void page_fault(
+    uint32_t vector,
+    uint32_t edi, uint32_t esi, uint32_t ebp, uint32_t esp,
+    uint32_t ebx, uint32_t edx, uint32_t ecx, uint32_t eax,
+    uint32_t gs, uint32_t fs, uint32_t es, uint32_t ds,
+    uint32_t vector0, uint32_t error, uint32_t eip, uint32_t cs, uint32_t eflags)
+{
+    assert(vector == 0xe);
+    uint32_t vaddr = get_cr2();
+    LOGK("fault address 0x%p\n", vaddr);
+
+    page_error_code_t *code = (page_error_code_t *)&error;
+    task_t *task = running_task();
+
+    // 判断虚拟地址是否在内核空间或者最大栈地址
+    assert(KERNEL_MEMORY_SIZE <= vaddr && vaddr < USER_STACK_TOP);
+
+    if (!code->present && (vaddr > USER_STACK_BOTTOM))
+    {
+        uint32_t page = PAGE(IDX(vaddr));
+        link_page(page);
+        return;
+    }
+
+    panic("page fault!!!");
+}
 
 // void memory_test()
 // {
