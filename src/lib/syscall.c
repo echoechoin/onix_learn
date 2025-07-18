@@ -48,6 +48,11 @@ uint32_t test()
     return _syscall0(SYS_NR_TEST);
 }
 
+void exit(int status)
+{
+    _syscall1(SYS_NR_EXIT, (uint32_t)status);
+}
+
 void yield()
 {
     _syscall0(SYS_NR_YIELD);

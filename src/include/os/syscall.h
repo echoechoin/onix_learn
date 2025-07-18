@@ -6,6 +6,7 @@
 typedef enum syscall_t
 {
     SYS_NR_TEST = 0,
+    SYS_NR_EXIT = 1,
     SYS_NR_FORK = 2,
     SYS_NR_WRITE = 4,
     SYS_NR_GETPID = 20,
@@ -16,6 +17,7 @@ typedef enum syscall_t
 } syscall_t;
 
 uint32_t test();
+void exit(int status);
 pid_t fork();
 void yield();
 void sleep(uint32_t ms);

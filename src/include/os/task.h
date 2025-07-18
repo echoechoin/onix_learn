@@ -37,6 +37,7 @@ typedef struct task_t
     uint32_t pde;                 // 页目录物理地址
     struct bitmap_t *vmap;        // 进程虚拟内存位图
     uint32_t brk;                 // 进程堆内存最高地址
+    int status;                   // 进程退出值
     uint32_t magic;               // 内核魔数，用于检测栈溢出
 } task_t;
 
@@ -97,6 +98,7 @@ typedef struct intr_frame_t
 task_t *running_task();
 void schedule();
 void task_yield();
+void task_exit(int status);
 pid_t task_fork();
 
 void task_block(task_t *task, list_t *blist, task_state_t state);

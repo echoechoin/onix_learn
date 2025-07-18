@@ -14,6 +14,8 @@
 #include <os/syscall.h>
 #include <os/arena.h>
 
+#define LOGK(fmt, args...) DEBUGK(fmt, ##args)
+
 #define PAGE_SIZE 0x1000
 
 extern uint32_t volatile jiffies;
@@ -429,6 +431,35 @@ pid_t task_fork()
 
     // 父进程返回子进程 pid
     return child->pid;
+}
+
+void task_exit(int status)
+{
+    task_t *task = running_task();
+
+    // 当前进程没有阻塞，且正在执行
+    assert(task->node.next == NULL && task->node.prev == NULL && task->state == TASK_RUNNING);
+
+    task->state = TASK_DIED;
+    task->status = status;
+
+    free_pde();
+
+    free_kpage((uint32_t)task->vmap->bits, 1);
+    kfree(task->vmap);
+
+    // 将子进程的父进程赋值为自己的父进程
+    for (size_t i = 0; i < NR_TASKS; i++)
+    {
+        task_t *child = task_table[i];
+        if (!child)
+            continue;
+        if (child->ppid != task->pid)
+            continue;
+        child->ppid = task->ppid;
+    }
+    LOGK("task 0x%p exit....\n", task);
+    schedule();
 }
 
 extern void idle_thread();

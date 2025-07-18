@@ -52,7 +52,7 @@ static void real_init_thread()
         } else {
             printf("child:  pid: %d\n, ppid: %d\n", getpid(), getppid());
         }
-        hang();
+        exit(0);
     }
 }
 
