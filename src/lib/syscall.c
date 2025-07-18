@@ -6,7 +6,7 @@ static _inline uint32_t _syscall0(uint32_t nr)
     uint32_t ret;
     asm volatile(
         "int $0x80\n"
-        : "=a"(ret)
+        : "=a"(ret) // 将eax寄存器的值赋值给ret
         : "a"(nr));
     return ret;
 }
@@ -72,4 +72,9 @@ pid_t getpid()
 pid_t getppid()
 {
     return _syscall0(SYS_NR_GETPPID);
+}
+
+pid_t fork()
+{
+    return _syscall0(SYS_NR_FORK);
 }

@@ -1,3 +1,4 @@
+#include "os/stdlib.h"
 #include <os/interrupt.h>
 #include <os/syscall.h>
 #include <os/debug.h>
@@ -45,7 +46,13 @@ static void real_init_thread()
         // test_recursion(); // 最终会导致缺页异常
         // printk("hello world!\n"); // 触发异常，因为无法再printk中的中断使能指令
         // printf("hello world!\n");
-        printf("pid: %d\n, ppid: %d\n", getpid(), getppid());
+        
+        if (fork() != 0) {
+            printf("parent: pid: %d\n, ppid: %d\n", getpid(), getppid());
+        } else {
+            printf("child:  pid: %d\n, ppid: %d\n", getpid(), getppid());
+        }
+        hang();
     }
 }
 

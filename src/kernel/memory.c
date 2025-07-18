@@ -28,9 +28,9 @@ static const char *ards_type_s[] = {
 #undef _
 };
 
-#define IDX(addr) ((uint32_t)addr >> 12)            // 获取 paddr 的页索引
-#define DIDX(addr) (((uint32_t)addr >> 22) & 0x3ff) // 获取 vaddr 的页目录列表索引: addr的高10位
-#define TIDX(addr) (((uint32_t)addr >> 12) & 0x3ff) // 获取 vaddr 的页表索引: addr的中间10位
+#define IDX(addr) ((uint32_t)(addr) >> 12)            // 获取 paddr 的页索引
+#define DIDX(addr) (((uint32_t)(addr) >> 22) & 0x3ff) // 获取 vaddr 的页目录列表索引: addr的高10位
+#define TIDX(addr) (((uint32_t)(addr) >> 12) & 0x3ff) // 获取 vaddr 的页表索引: addr的中间10位
 
 #define PAGE(idx) ((uint32_t)idx << 12)             // 获取页索引 idx 对应的页开始的位置: 1 -> 0x1000
 #define ASSERT_PAGE(addr) assert((addr & 0xfff) == 0)
@@ -109,7 +109,7 @@ void memory_init(uint32_t magic, uint32_t addr)
 }
 
 static uint32_t start_page = 0;   // 可分配物理内存起始位置
-static uint8_t *memory_map;       // 物理内存数组
+static uint8_t *memory_map;       // 物理内存数组, 存放物理页占用情况，表示被n个task占用
 static uint32_t memory_map_pages; // 物理内存数组占用的页数
 
 void memory_map_init()
@@ -413,6 +413,20 @@ void unlink_page(uint32_t vaddr)
     flush_tlb(vaddr);
 }
 
+
+// 拷贝一页，返回拷贝后的物理地址
+static uint32_t copy_page(void *page)
+{
+    uint32_t paddr = get_page();
+
+    page_entry_t *entry = get_pte(0, false);
+    entry_init(entry, IDX(paddr));
+    memcpy((void *)0, (void *)page, PAGE_SIZE);
+
+    entry->present = false;
+    return paddr;
+}
+
 // 拷贝当前页目录
 page_entry_t *copy_pde()
 {
@@ -423,6 +437,39 @@ page_entry_t *copy_pde()
     // 将最后一个页表指向页目录自己，方便修改
     page_entry_t *entry = &pde[1023];
     entry_init(entry, IDX(pde));
+
+    // 还要拷贝页表，但是设置为只读，之后fork的进程写的时候进入缺页异常，然后进行页拷贝
+    page_entry_t *dentry;
+    for (size_t didx = 2; didx < 1023; didx++)
+    {
+        dentry = &pde[didx];
+        if (!dentry->present)
+            continue;
+
+        page_entry_t *pte = (page_entry_t *)(PDE_MASK | (didx << 12));
+
+        for (size_t tidx = 0; tidx < 1024; tidx++)
+        {
+            entry = &pte[tidx];
+            if (!entry->present)
+                continue;
+
+            // 对应物理内存引用大于 0
+            assert(memory_map[entry->index] > 0);
+            // 置为只读
+            entry->write = false;
+            // 对应物理页引用加 1，表示该页被多个task占用
+            memory_map[entry->index]++;
+
+            // 最多 255 个map
+            assert(memory_map[entry->index] < 255);
+        }
+
+        uint32_t paddr = copy_page(pte);
+        dentry->index = IDX(paddr);
+    }
+
+    set_cr3(task->pde);
 
     return pde;
 }
@@ -463,6 +510,36 @@ void page_fault(
     // 判断虚拟地址是否在内核空间或者最大栈地址
     assert(KERNEL_MEMORY_SIZE <= vaddr && vaddr < USER_STACK_TOP);
 
+    // 如果该页在物理内存中，那肯定是写导致的缺页中断
+    if (code->present)
+    {
+        assert(code->write);
+
+        page_entry_t *pte = get_pte(vaddr, false);
+        page_entry_t *entry = &pte[TIDX(vaddr)];
+
+        assert(entry->present);
+        assert(memory_map[entry->index] > 0);
+        if (memory_map[entry->index] == 1)
+        {
+            // 表示该页只有一个task在使用
+            entry->write = true;
+            LOGK("WRITE page for 0x%p\n", vaddr);
+        }
+        else
+        {
+            // 表示该页有多个task使用，因此在写之前需要拷贝
+            void *page = (void *)PAGE(IDX(vaddr));
+            uint32_t paddr = copy_page(page);
+            memory_map[entry->index]--;
+            entry_init(entry, IDX(paddr));
+            flush_tlb(vaddr);
+            LOGK("COPY page for 0x%p\n", vaddr);
+        }
+        return;
+    }
+
+    // 如果该页不在物理内存中，需要申请一个物理页映射到对应的虚拟内存
     if (!code->present && (vaddr > USER_STACK_BOTTOM))
     {
         uint32_t page = PAGE(IDX(vaddr));
