@@ -28,6 +28,7 @@ typedef uint32_t time_t;
 typedef uint32_t idx_t;
 
 typedef int32_t fd_t;
+typedef int32_t pid_t;
 typedef enum std_fd_t
 {
     stdin,

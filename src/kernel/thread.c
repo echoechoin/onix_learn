@@ -42,9 +42,10 @@ static void real_init_thread()
     char ch;
     while (true)
     {
-        test_recursion(); // 最终会导致缺页异常
+        // test_recursion(); // 最终会导致缺页异常
         // printk("hello world!\n"); // 触发异常，因为无法再printk中的中断使能指令
         // printf("hello world!\n");
+        printf("pid: %d\n, ppid: %d\n", getpid(), getppid());
     }
 }
 

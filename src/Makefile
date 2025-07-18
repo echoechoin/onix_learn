@@ -127,9 +127,7 @@ run: $(TARGET)/image.bin
 
 # -S 表示阻塞等待 gdb 执行 continue
 debug: $(TARGET)/image.bin
-	$(QEMU) -m 128M -gdb tcp::1234 -hda $(TARGET)/image.bin -S
-
-gdb:
+	$(QEMU) -m 128M -gdb tcp::1234 -hda $(TARGET)/image.bin -S &
 	gdb -x gdb_script.gdb
 
 clean:
