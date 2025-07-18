@@ -34,6 +34,7 @@ typedef struct task_t
     uint32_t uid;                 // 用户 id
     uint32_t pde;                 // 页目录物理地址
     struct bitmap_t *vmap;        // 进程虚拟内存位图
+    uint32_t brk;                 // 进程堆内存最高地址
     uint32_t magic;               // 内核魔数，用于检测栈溢出
 } task_t;
 

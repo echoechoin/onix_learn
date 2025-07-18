@@ -6,14 +6,16 @@
 typedef enum syscall_t
 {
     SYS_NR_TEST = 0,
-    SYS_NR_YIELD,
-    SYS_NR_SLEEP,
-    SYS_NR_WRITE,
+    SYS_NR_WRITE = 4,
+    SYS_NR_BRK = 45,
+    SYS_NR_YIELD = 158,
+    SYS_NR_SLEEP = 162,
 } syscall_t;
 
 uint32_t test();
 void yield();
 void sleep(uint32_t ms);
+int32_t brk(void *addr);
 int32_t write(fd_t fd, char *buf, uint32_t len);
 
 #endif

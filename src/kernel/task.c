@@ -269,6 +269,7 @@ static task_t *task_create(target_t target, const char *name, uint32_t priority,
     task->vmap = &kernel_map;
     task->pde = KERNEL_PAGE_DIR;
     task->magic = OS_MAGIC;
+    task->brk = KERNEL_MEMORY_SIZE; // 一开始用户态没有堆空间
 
     return task;
 }

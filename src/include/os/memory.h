@@ -49,4 +49,6 @@ void memory_init(uint32_t magic, uint32_t addr);
 
 page_entry_t *copy_pde();
 
+// 系统调用 brk
+int32_t sys_brk(void *addr);
 #endif

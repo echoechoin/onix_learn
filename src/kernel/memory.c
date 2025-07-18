@@ -473,6 +473,36 @@ void page_fault(
     panic("page fault!!!");
 }
 
+int32_t sys_brk(void *addr)
+{
+    LOGK("task brk 0x%p\n", addr);
+    uint32_t brk = (uint32_t)addr;
+    ASSERT_PAGE(brk);
+
+    task_t *task = running_task();
+    assert(task->uid != KERNEL_USER);
+
+    assert(KERNEL_MEMORY_SIZE < brk < USER_STACK_BOTTOM);
+
+    uint32_t old_brk = task->brk;
+
+    if (old_brk > brk)
+    {
+        for (; brk < old_brk; brk += PAGE_SIZE)
+        {
+            unlink_page(brk);
+        }
+    }
+    else if (IDX(brk - old_brk) > free_pages)
+    {
+        // out of memory
+        return -1;
+    }
+
+    task->brk = brk;
+    return 0;
+}
+
 // void memory_test()
 // {
 //     // 将 20 M 0x1400000 内存映射到 64M 0x4000000 的位置
