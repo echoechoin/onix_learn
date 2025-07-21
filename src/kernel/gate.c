@@ -59,6 +59,8 @@ int32_t sys_write(fd_t fd, char *buf, uint32_t len)
     return 0;
 }
 
+extern time_t sys_time();
+
 void syscall_init()
 {
     for (size_t i = 0; i < SYSCALL_SIZE; i++)
@@ -69,11 +71,12 @@ void syscall_init()
     syscall_table[SYS_NR_TEST] = sys_test;
     syscall_table[SYS_NR_EXIT] = task_exit;
     syscall_table[SYS_NR_FORK] = task_fork;
-     syscall_table[SYS_NR_WAITPID] = task_waitpid;
+    syscall_table[SYS_NR_WAITPID] = task_waitpid;
     syscall_table[SYS_NR_YIELD] = task_yield;
     syscall_table[SYS_NR_SLEEP] = task_sleep;
     syscall_table[SYS_NR_WRITE] = sys_write;
     syscall_table[SYS_NR_BRK] = sys_brk;
     syscall_table[SYS_NR_GETPID] = sys_getpid;
     syscall_table[SYS_NR_GETPPID] = sys_getppid;
+    syscall_table[SYS_NR_TIME] = sys_time;
 }

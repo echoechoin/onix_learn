@@ -30,6 +30,13 @@ void clock_handler(int vector)
     }
 }
 
+extern uint32_t startup_time;
+
+time_t sys_time()
+{
+    return startup_time + (jiffies * JIFFY) / 1000;
+}
+
 void pit_init()
 {
     outb(PIT_CTRL_REG, 0b00110100);
