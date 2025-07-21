@@ -9,6 +9,7 @@ typedef enum syscall_t
     SYS_NR_EXIT = 1,
     SYS_NR_FORK = 2,
     SYS_NR_WRITE = 4,
+    SYS_NR_WAITPID = 7,
     SYS_NR_GETPID = 20,
     SYS_NR_BRK = 45,
     SYS_NR_GETPPID = 64,
@@ -18,6 +19,7 @@ typedef enum syscall_t
 
 uint32_t test();
 void exit(int status);
+pid_t waitpid(pid_t pid, int32_t *status);
 pid_t fork();
 void yield();
 void sleep(uint32_t ms);

@@ -32,12 +32,13 @@ typedef struct task_t
     uint32_t jiffies;             // 上次执行时全局时间片
     uint8_t name[TASK_NAME_LEN];  // 任务名
     uint32_t uid;                 // 用户 id
-    pid_t pid;                  // 任务 id
-    pid_t ppid;                 // 父任务 id
+    pid_t pid;                    // 任务 id
+    pid_t ppid;                   // 父任务 id
     uint32_t pde;                 // 页目录物理地址
     struct bitmap_t *vmap;        // 进程虚拟内存位图
     uint32_t brk;                 // 进程堆内存最高地址
     int status;                   // 进程退出值
+    pid_t waitpid;                // 进程等待的 pid
     uint32_t magic;               // 内核魔数，用于检测栈溢出
 } task_t;
 
@@ -100,6 +101,7 @@ void schedule();
 void task_yield();
 void task_exit(int status);
 pid_t task_fork();
+pid_t task_waitpid(pid_t pid, int32_t *status);
 
 void task_block(task_t *task, list_t *blist, task_state_t state);
 void task_unblock(task_t *task);

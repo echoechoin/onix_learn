@@ -1,4 +1,5 @@
 #include "os/stdlib.h"
+#include "os/types.h"
 #include <os/interrupt.h>
 #include <os/syscall.h>
 #include <os/debug.h>
@@ -39,20 +40,24 @@ void test_recursion()
 static void real_init_thread()
 {
     uint32_t counter = 0;
-
+    int status;
     char ch;
     while (true)
     {
+        pid_t pid = fork();
         // test_recursion(); // 最终会导致缺页异常
         // printk("hello world!\n"); // 触发异常，因为无法再printk中的中断使能指令
         // printf("hello world!\n");
         
-        if (fork() != 0) {
+        if (pid != 0) {
             printf("parent: pid: %d\n, ppid: %d\n", getpid(), getppid());
+            pid_t child = waitpid(pid, &status);
         } else {
             printf("child:  pid: %d\n, ppid: %d\n", getpid(), getppid());
+            sleep(1000);
+            exit(0);
         }
-        exit(0);
+        sleep(1000);
     }
 }
 

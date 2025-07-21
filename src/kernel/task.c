@@ -459,7 +459,67 @@ void task_exit(int status)
         child->ppid = task->ppid;
     }
     LOGK("task 0x%p exit....\n", task);
+
+    // 子进程退出的时候需要唤醒被waitpid阻塞的父进程
+    task_t *parent = task_table[task->ppid];
+    if (parent->state == TASK_WAITING &&
+        (parent->waitpid == -1 || parent->waitpid == task->pid))
+    {
+        task_unblock(parent);
+    }
+
     schedule();
+}
+
+
+pid_t task_waitpid(pid_t pid, int32_t *status)
+{
+    task_t *task = running_task();
+    task_t *child = NULL;
+
+    while (true)
+    {
+        bool has_child = false;
+        for (size_t i = 2; i < NR_TASKS; i++)
+        {
+            // 查找子进程
+            task_t *ptr = task_table[i];
+            if (!ptr)
+                continue;
+
+            if (ptr->ppid != task->pid)
+                continue;
+            if (pid != ptr->pid && pid != -1)
+                continue;
+
+            // 如果子进程已经死亡，进入rollback释放子进程
+            if (ptr->state == TASK_DIED)
+            {
+                child = ptr;
+                task_table[i] = NULL;
+                goto rollback;
+            }
+
+            // 如果子进程没有死亡，阻塞调用waitpid的进程，知道子进程死亡后唤醒父进程。
+            has_child = true;
+        }
+        if (has_child)
+        {
+            task->waitpid = pid;
+            task_block(task, NULL, TASK_WAITING);
+            continue;
+        }
+        break;
+    }
+
+    // 没找到符合条件的子进程
+    return -1;
+
+rollback:
+    *status = child->status;
+    uint32_t ret = child->pid;
+    free_kpage((uint32_t)child, 1);
+    return ret;
 }
 
 extern void idle_thread();
